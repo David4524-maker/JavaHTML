@@ -1,4 +1,4 @@
-<img width="480" height="618" alt="Captura de pantalla 2026-10-17 163717" src="https://github.com/user-attachments/assets/202b8b87-318a-42ff-9439-03d4a8402ae9" />
+<img width="480" height="618" alt="Captura de pantalla 2026-10-17 163717" src="https://github.com/user-attachments/assets/202b8b87-318a-42ff-9439-03d4a8402ae9" /> 
 
 # JavaHTML 
 
