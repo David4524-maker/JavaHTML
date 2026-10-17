@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaHTML — IDE</title>
+<style>
+  :root{
+    --bg:#1e1e28; --bg2:#252532; --bg3:#2d2d3d; --bg4:#1a1a24;
+    --border:#3a3a4e; --border2:#4a4a5e;
+    --fg:#d4d4dc; --dim:#808090;
+    --orange:#f89820; --orange2:#e07b10;
+    --ok:#4ec9b0; --err:#f48771;
+    --font:'JetBrains Mono','Consolas','Monaco','Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--fg);
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:14px;padding:0 16px;height:56px;flex-shrink:0;
+    background:linear-gradient(180deg,#2a2a3a 0%,var(--bg2) 100%);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 2px 12px rgba(0,0,0,.3);
+    position:relative;z-index:10;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .duke{
+    width:44px;height:44px;border-radius:10px;overflow:hidden;
+    display:grid;place-items:center;flex-shrink:0;
+    box-shadow:0 4px 16px rgba(248,152,32,.35);
+    background:var(--bg3);
+  }
+  .duke img{width:100%;height:100%;display:block;object-fit:cover}
+  .brand-text h1{font-size:16px;font-weight:800;letter-spacing:.4px;line-height:1.1}
+  .brand-text h1 span{color:var(--orange)}
+  .brand-text small{font-size:10.5px;color:var(--dim);letter-spacing:.3px;display:block;margin-top:2px}
+  .controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  select,button{
+    font-family:inherit;font-size:12px;font-weight:600;border-radius:6px;
+    border:1px solid var(--border);background:var(--bg3);color:var(--fg);
+    padding:7px 11px;cursor:pointer;transition:.15s;
+  }
+  select:hover,button:hover{border-color:var(--border2);background:#343445}
+  button.primary{
+    background:linear-gradient(180deg,var(--orange),var(--orange2));
+    border-color:var(--orange2);color:#1a1000;
+  }
+  button.primary:hover{filter:brightness(1.1)}
+  button.primary:active{transform:translateY(1px)}
+  button.icon-btn{padding:7px 10px;font-size:13px}
+  .tabbar{
+    display:flex;align-items:flex-end;gap:1px;padding:6px 8px 0;
+    background:var(--bg4);border-bottom:1px solid var(--border);flex-shrink:0;
+    overflow-x:auto;min-height:36px;
+  }
+  .tab{
+    display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;
+    background:var(--bg3);color:var(--dim);border:1px solid var(--border);
+    border-bottom:none;border-radius:6px 6px 0 0;cursor:pointer;white-space:nowrap;
+    transition:.15s;position:relative;top:1px;
+  }
+  .tab:hover{background:#343445;color:var(--fg)}
+  .tab.active{background:var(--bg2);color:var(--orange);border-color:var(--border);top:0;padding-bottom:8px}
+  .tab.active::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--orange)}
+  .tab .close{opacity:.5;font-size:14px;line-height:1;padding:0 2px;border-radius:3px}
+  .tab .close:hover{opacity:1;background:rgba(244,135,113,.3);color:var(--err)}
+  .tab .modified{color:var(--orange)}
+  .tab-new{padding:7px 12px;font-size:16px;color:var(--dim);background:transparent;border:none;cursor:pointer;border-radius:6px}
+  .tab-new:hover{background:var(--bg3);color:var(--orange)}
+  main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;min-height:0}
+  .pane{
+    display:flex;flex-direction:column;background:var(--bg2);
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:0;
+  }
+  .pane-toolbar{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border);
+    font-size:11px;color:var(--dim);font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  }
+  .pane-toolbar .badge{
+    background:var(--bg4);color:var(--orange);padding:2px 8px;border-radius:10px;
+    font-size:10px;font-weight:700;letter-spacing:.3px;
+  }
+  .editor-wrap{
+    flex:1;display:flex;min-height:0;background:#1a1a24;position:relative;overflow:hidden;
+  }
+  .line-numbers{
+    padding:12px 6px 12px 10px;color:#4a4a5a;
+    font-family:var(--font);font-size:13px;line-height:1.55;
+    text-align:right;user-select:none;background:#15151e;border-right:1px solid #2a2a38;
+    min-width:44px;white-space:pre;overflow:hidden;
+  }
+  .editor-inner{flex:1;position:relative;overflow:hidden}
+  .highlight,.editor-inner textarea{
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    padding:12px 14px;font-family:var(--font);font-size:13px;line-height:1.55;
+    border:0;outline:0;resize:none;background:transparent;color:var(--fg);
+    white-space:pre;overflow:auto;tab-size:4;-moz-tab-size:4;
+    letter-spacing:0;word-wrap:normal;direction:ltr;text-align:left;
+  }
+  .highlight{color:var(--fg);pointer-events:none;z-index:1}
+  .editor-inner textarea{
+    color:transparent;caret-color:var(--orange);z-index:2;
+    -webkit-text-fill-color:transparent;background:transparent;
+  }
+  .editor-inner textarea::selection{background:rgba(248,152,32,.3);-webkit-text-fill-color:transparent}
+  .kw{color:var(--orange);font-weight:600}
+  .str{color:#ce9178}
+  .num{color:#b5cea8}
+  .cmt{color:#6a737d;font-style:italic}
+  .cls{color:var(--ok)}
+  .lit{color:#569cd6}
+  .console-out{
+    flex:1;overflow:auto;padding:12px 14px;
+    font-family:var(--font);font-size:13px;line-height:1.55;
+    white-space:pre-wrap;word-break:break-word;color:#c8c8d0;
+    background:#1a1a24;
+  }
+  .console-out .c-err{color:var(--err)}
+  .console-out .c-ok{color:var(--ok)}
+  .console-out .c-dim{color:var(--dim)}
+  .console-out .c-hdr{color:var(--orange);font-weight:700}
+  footer{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:5px 16px;background:var(--bg2);border-top:1px solid var(--border);
+    font-size:11px;color:var(--dim);flex-shrink:0;
+  }
+  .status{display:flex;align-items:center;gap:7px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .dot.busy{background:var(--orange);box-shadow:0 0 6px var(--orange);animation:pulse .8s infinite}
+  .dot.bad{background:var(--err);box-shadow:0 0 6px var(--err)}
+  @keyframes pulse{50%{opacity:.35}}
+  .footer-info{display:flex;align-items:center;gap:12px}
+  .footer-info span{font-family:var(--font);font-size:10.5px}
+  @media(max-width:860px){
+    main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+    .controls select{max-width:120px}
+  }
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#3a3a4e;border-radius:10px}
+  ::-webkit-scrollbar-thumb:hover{background:#4a4a5e}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="duke">
+      <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23f89820%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c8641a%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2248%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M30%2042%20L35%2072%20L65%2072%20L70%2042%20Z%22%20fill%3D%22%23fff%22%20stroke%3D%22%238b4513%22%20stroke-width%3D%222%22%2F%3E%3Cellipse%20cx%3D%2250%22%20cy%3D%2242%22%20rx%3D%2220%22%20ry%3D%225%22%20fill%3D%22%23fff%22%20stroke%3D%22%238b4513%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M70%2052%20Q80%2052%2080%2060%20Q80%2068%2070%2068%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%223%22%2F%3E%3Cpath%20d%3D%22M38%2035%20Q38%2027%2044%2025%20M50%2035%20Q50%2027%2056%2025%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E" alt="Java">
+    </div>
+    <div class="brand-text">
+      <h1>Java<span>HTML</span></h1>
+      <small id="subtitle">Java en tu navegador · IDE</small>
+    </div>
+  </div>
+  <div class="controls">
+    <select id="langSel" title="Idioma"></select>
+    <select id="exSel" title="Ejemplo"></select>
+    <button class="icon-btn" id="fontMinus" title="Reducir fuente">A−</button>
+    <button class="icon-btn" id="fontPlus" title="Aumentar fuente">A+</button>
+    <button class="primary" id="runBtn">▶ Ejecutar</button>
+    <button id="clearBtn">Limpiar</button>
+  </div>
+</header>
+
+<div class="tabbar" id="tabbar"></div>
+
+<main>
+  <section class="pane">
+    <div class="pane-toolbar">
+      <span id="editorLabel">Editor</span>
+      <span class="badge" id="posBadge">Ln 1, Col 1</span>
+    </div>
+    <div class="editor-wrap">
+      <div class="line-numbers" id="gutter">1</div>
+      <div class="editor-inner">
+        <pre class="highlight" id="highlight"><code id="hlCode"></code></pre>
+        <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+      </div>
+    </div>
+  </section>
+  <section class="pane">
+    <div class="pane-toolbar">
+      <span id="consoleLabel">Consola</span>
+      <span class="badge" id="hint">Ctrl+Enter</span>
+    </div>
+    <pre class="console-out" id="console"></pre>
+  </section>
+</main>
+
+<footer>
+  <span class="status"><span class="dot" id="dot"></span><span id="statusText">Listo</span></span>
+  <div class="footer-info">
+    <span id="stats">JavaHTML IDE v2.1</span>
+    <span>·</span>
+    <span id="locInfo">0 líneas</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. INTERNACIONALIZACIÓN — 10 IDIOMAS
+   ============================================================ */
+const LANGS = [
+  {code:'es', label:'🇪🇸 Español',   dir:'ltr'},
+  {code:'en', label:'🇬🇧 English',   dir:'ltr'},
+  {code:'pt', label:'🇧🇷 Português', dir:'ltr'},
+  {code:'fr', label:'🇫🇷 Français',  dir:'ltr'},
+  {code:'de', label:'🇩🇪 Deutsch',   dir:'ltr'},
+  {code:'it', label:'🇮🇹 Italiano',  dir:'ltr'},
+  {code:'zh', label:'🇨🇳 中文',      dir:'ltr'},
+  {code:'ja', label:'🇯🇵 日本語',    dir:'ltr'},
+  {code:'ru', label:'🇷🇺 Русский',   dir:'ltr'},
+  {code:'ar', label:'🇸🇦 العربية',   dir:'rtl'}
+];
+
+const I18N = {
+  es:{subtitle:'Java en tu navegador · IDE',run:'▶ Ejecutar',clear:'Limpiar',editor:'Editor',console:'Consola',
+      ready:'Listo',running:'Ejecutando…',ok:'Programa finalizado',err:'Error',hint:'Ctrl+Enter',
+      untitled:'Sin título',newFile:'Nuevo archivo',lines:'líneas',empty:'(sin salida)'},
+  en:{subtitle:'Java in your browser · IDE',run:'▶ Run',clear:'Clear',editor:'Editor',console:'Console',
+      ready:'Ready',running:'Running…',ok:'Program finished',err:'Error',hint:'Ctrl+Enter',
+      untitled:'Untitled',newFile:'New file',lines:'lines',empty:'(no output)'},
+  pt:{subtitle:'Java no seu navegador · IDE',run:'▶ Executar',clear:'Limpar',editor:'Editor',console:'Console',
+      ready:'Pronto',running:'Executando…',ok:'Programa finalizado',err:'Erro',hint:'Ctrl+Enter',
+      untitled:'Sem título',newFile:'Novo arquivo',lines:'linhas',empty:'(sem saída)'},
+  fr:{subtitle:'Java dans votre navigateur · IDE',run:'▶ Exécuter',clear:'Effacer',editor:'Éditeur',console:'Console',
+      ready:'Prêt',running:'Exécution…',ok:'Programme terminé',err:'Erreur',hint:'Ctrl+Entrée',
+      untitled:'Sans titre',newFile:'Nouveau fichier',lines:'lignes',empty:'(aucune sortie)'},
+  de:{subtitle:'Java in deinem Browser · IDE',run:'▶ Ausführen',clear:'Leeren',editor:'Editor',console:'Konsole',
+      ready:'Bereit',running:'Läuft…',ok:'Programm beendet',err:'Fehler',hint:'Strg+Enter',
+      untitled:'Unbenannt',newFile:'Neue Datei',lines:'Zeilen',empty:'(keine Ausgabe)'},
+  it:{subtitle:'Java nel tuo browser · IDE',run:'▶ Esegui',clear:'Pulisci',editor:'Editor',console:'Console',
+      ready:'Pronto',running:'Esecuzione…',ok:'Programma terminato',err:'Errore',hint:'Ctrl+Invio',
+      untitled:'Senza titolo',newFile:'Nuovo file',lines:'righe',empty:'(nessun output)'},
+  zh:{subtitle:'浏览器中的 Java · IDE',run:'▶ 运行',clear:'清空',editor:'编辑器',console:'控制台',
+      ready:'就绪',running:'运行中…',ok:'程序结束',err:'错误',hint:'Ctrl+Enter',
+      untitled:'未命名',newFile:'新建文件',lines:'行',empty:'(无输出)'},
+  ja:{subtitle:'ブラウザのJava · IDE',run:'▶ 実行',clear:'クリア',editor:'エディタ',console:'コンソール',
+      ready:'準備完了',running:'実行中…',ok:'プログラム終了',err:'エラー',hint:'Ctrl+Enter',
+      untitled:'無題',newFile:'新規ファイル',lines:'行',empty:'(出力なし)'},
+  ru:{subtitle:'Java в браузере · IDE',run:'▶ Запустить',clear:'Очистить',editor:'Редактор',console:'Консоль',
+      ready:'Готово',running:'Выполняется…',ok:'Программа завершена',err:'Ошибка',hint:'Ctrl+Enter',
+      untitled:'Без имени',newFile:'Новый файл',lines:'строк',empty:'(нет вывода)'},
+  ar:{subtitle:'جافا في متصفحك · IDE',run:'▶ تشغيل',clear:'مسح',editor:'المحرر',console:'الوحدة الطرفية',
+      ready:'جاهز',running:'جارٍ التنفيذ…',ok:'انتهى البرنامج',err:'خطأ',hint:'Ctrl+Enter',
+      untitled:'بدون عنوان',newFile:'ملف جديد',lines:'أسطر',empty:'(لا مخرجات)'}
+};
+
+let LANG = 'es';
+const t = k => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
+
+/* ============================================================
+   2. EJEMPLOS
+   ============================================================ */
+const EXAMPLES = [
+  {name:'Hola Mundo', code:[
+    'public class Hola {',
+    '    public static void main(String[] args) {',
+    '        System.out.println("¡Hola, mundo!");',
+    '        System.out.println("Java en el navegador");',
+    '        for (int i = 1; i <= 5; i++) {',
+    '            System.out.println("Iteración " + i);',
+    '        }',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'Recursión', code:[
+    'public class Factorial {',
+    '    static int fact(int n) {',
+    '        if (n <= 1) return 1;',
+    '        return n * fact(n - 1);',
+    '    }',
+    '    static int fib(int n) {',
+    '        if (n < 2) return n;',
+    '        return fib(n - 1) + fib(n - 2);',
+    '    }',
+    '    public static void main(String[] args) {',
+    '        System.out.println("=== Factoriales ===");',
+    '        for (int i = 1; i <= 12; i++) {',
+    '            System.out.println(i + "! = " + fact(i));',
+    '        }',
+    '        System.out.println();',
+    '        System.out.println("=== Fibonacci ===");',
+    '        for (int i = 0; i < 12; i++) {',
+    '            System.out.print(fib(i) + " ");',
+    '        }',
+    '        System.out.println();',
+    '        System.out.println("2 + 3 * 4 = " + (2 + 3 * 4));',
+    '        System.out.println("7 / 2 = " + (7 / 2));',
+    '        System.out.println("7.0 / 2 = " + (7.0 / 2));',
+    '        System.out.println("10 % 3 = " + (10 % 3));',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'Bucles', code:[
+    'public class Bucles {',
+    '    public static void main(String[] args) {',
+    '        int a = 0, b = 1;',
+    '        System.out.print("Fibonacci: ");',
+    '        for (int i = 0; i < 20; i++) {',
+    '            System.out.print(a + " ");',
+    '            int tmp = a + b;',
+    '            a = b;',
+    '            b = tmp;',
+    '        }',
+    '        System.out.println();',
+    '        int n = 10, suma = 0;',
+    '        while (n > 0) { suma += n; n--; }',
+    '        System.out.println("Suma 1..10 = " + suma);',
+    '        int x = 1;',
+    '        do { x *= 2; } while (x < 100);',
+    '        System.out.println("Potencia de 2: " + x);',
+    '        for (int i = 1; i <= 15; i++) {',
+    '            if (i % 15 == 0) System.out.println("FizzBuzz");',
+    '            else if (i % 3 == 0) System.out.println("Fizz");',
+    '            else if (i % 5 == 0) System.out.println("Buzz");',
+    '            else System.out.println(i);',
+    '        }',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'POO', code:[
+    'class Animal {',
+    '    protected String nombre;',
+    '    protected int edad;',
+    '    public Animal(String nombre, int edad) {',
+    '        this.nombre = nombre;',
+    '        this.edad = edad;',
+    '    }',
+    '    public String hablar() { return "..."; }',
+    '    public String info() { return nombre + " (" + edad + " años)"; }',
+    '}',
+    'class Perro extends Animal {',
+    '    public Perro(String n, int e) { super(n, e); }',
+    '    public String hablar() { return "¡Guau!"; }',
+    '    public int edadHumana() { return edad * 7; }',
+    '}',
+    'class Gato extends Animal {',
+    '    public Gato(String n, int e) { super(n, e); }',
+    '    public String hablar() { return "¡Miau!"; }',
+    '}',
+    'public class Main {',
+    '    public static void main(String[] args) {',
+    '        Animal[] zoo = {',
+    '            new Perro("Rex", 3),',
+    '            new Gato("Misi", 2),',
+    '            new Perro("Luna", 5)',
+    '        };',
+    '        for (Animal a : zoo) {',
+    '            System.out.println(a.info() + " dice " + a.hablar());',
+    '        }',
+    '        Perro p = new Perro("Toby", 4);',
+    '        System.out.println("Toby tiene " + p.edadHumana() + " años humanos");',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'Colecciones', code:[
+    'public class Colecciones {',
+    '    public static void main(String[] args) {',
+    '        int[] nums = {5, 3, 9, 1, 7};',
+    '        int suma = 0;',
+    '        for (int n : nums) suma += n;',
+    '        System.out.println("Arreglo: " + Arrays.toString(nums));',
+    '        System.out.println("Suma: " + suma);',
+    '        System.out.println("Máximo: " + Math.max(3, 9));',
+    '        System.out.println("Raíz de 16: " + Math.sqrt(16.0));',
+    '        ArrayList<String> frutas = new ArrayList<>();',
+    '        frutas.add("Manzana");',
+    '        frutas.add("Pera");',
+    '        frutas.add("Kiwi");',
+    '        System.out.println("Frutas: " + frutas);',
+    '        System.out.println("Total: " + frutas.size());',
+    '        String s = "  Hola JavaHTML  ";',
+    '        System.out.println("[" + s.trim().toUpperCase() + "]");',
+    '        System.out.printf("Pi = %.4f%n", Math.PI);',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'Excepciones', code:[
+    'public class Excepciones {',
+    '    static int dividir(int a, int b) {',
+    '        if (b == 0) throw new RuntimeException("División por cero");',
+    '        return a / b;',
+    '    }',
+    '    public static void main(String[] args) {',
+    '        System.out.println("10/2 = " + dividir(10, 2));',
+    '        try {',
+    '            System.out.println("5/0 = " + dividir(5, 0));',
+    '        } catch (RuntimeException e) {',
+    '            System.out.println("Capturado: " + e.getMessage());',
+    '        } finally {',
+    '            System.out.println("Bloque finally ejecutado");',
+    '        }',
+    '    }',
+    '}'
+  ].join('\n')},
+  {name:'Strings', code:[
+    'public class Strings {',
+    '    public static void main(String[] args) {',
+    '        String s = "JavaHTML es genial";',
+    '        System.out.println("Original: " + s);',
+    '        System.out.println("Longitud: " + s.length());',
+    '        System.out.println("Mayúsculas: " + s.toUpperCase());',
+    '        System.out.println("Minúsculas: " + s.toLowerCase());',
+    '        System.out.println("Contiene HTML: " + s.contains("HTML"));',
+    '        System.out.println("Índice de es: " + s.indexOf("es"));',
+    '        System.out.println("Subcadena: " + s.substring(9));',
+    '        System.out.println("Reemplazo: " + s.replace("genial", "increíble"));',
+    '        StringBuilder sb = new StringBuilder();',
+    '        for (int i = 0; i < 5; i++) sb.append(i).append(",");',
+    '        System.out.println("StringBuilder: " + sb.toString());',
+    '        String[] partes = s.split(" ");',
+    '        for (String p : partes) System.out.println("  - " + p);',
+    '    }',
+    '}'
+  ].join('\n')}
+];
+
+/* ============================================================
+   3. TOKENIZADOR
+   ============================================================ */
+const KEYWORDS = new Set(['abstract','assert','boolean','break','byte','case','catch','char','class','const',
+  'continue','default','do','double','else','enum','extends','final','finally','float','for','goto','if',
+  'implements','import','instanceof','int','interface','long','native','new','package','private','protected',
+  'public','return','short','static','strictfp','super','switch','synchronized','this','throw','throws',
+  'transient','try','void','volatile','while','true','false','null']);
+
+const PRIMITIVES = new Set(['boolean','byte','char','short','int','long','float','double','void']);
+
+const OPERATORS = ['>>>=','<<=','>>=','...','>>>','->','::','++','--','&&','||','==','!=','<=','>=',
+  '+=','-=','*=','/=','%=','&=','|=','^=','<<','>>',
+  '+','-','*','/','%','=','<','>','!','~','?',':','&','|','^','(',')','[',']','{','}',';',',','.','@'];
+
+function tokenize(src){
+  const toks = [];
+  let i = 0, line = 1, col = 1;
+  const n = src.length;
+  const isIdStart = ch => /[A-Za-z_$]/.test(ch);
+  const isIdPart  = ch => /[A-Za-z0-9_$]/.test(ch);
+  const isDigit   = ch => ch >= '0' && ch <= '9';
+  const adv = k => {
+    for(let j = 0; j < k; j++){
+      if(src[i] === '\n'){ line++; col = 1; } else { col++; }
+      i++;
+    }
+  };
+
+  while(i < n){
+    const ch = src[i];
+    if(ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n'){ adv(1); continue; }
+    if(ch === '/' && src[i+1] === '/'){ while(i < n && src[i] !== '\n') adv(1); continue; }
+    if(ch === '/' && src[i+1] === '*'){ adv(2); while(i < n && !(src[i] === '*' && src[i+1] === '/')) adv(1); adv(2); continue; }
+
+    const sl = line, sc = col;
+
+    if(isIdStart(ch)){
+      let s = '';
+      while(i < n && isIdPart(src[i])){ s += src[i]; adv(1); }
+      toks.push({type: KEYWORDS.has(s) ? 'kw' : 'id', value: s, line: sl, col: sc});
+      continue;
+    }
+
+    if(isDigit(ch) || (ch === '.' && isDigit(src[i+1]))){
+      let s = '', kind = 'int';
+      if(ch === '0' && (src[i+1] === 'x' || src[i+1] === 'X')){
+        adv(2); s = '';
+        while(i < n && /[0-9a-fA-F]/.test(src[i])){ s += src[i]; adv(1); }
+        if(src[i] === 'l' || src[i] === 'L') adv(1);
+        toks.push({type:'num', value: parseInt(s, 16), kind:'int', line: sl, col: sc});
+        continue;
+      }
+      while(i < n && isDigit(src[i])){ s += src[i]; adv(1); }
+      if(src[i] === '.' && isDigit(src[i+1])){ s += '.'; adv(1); kind = 'double'; while(i < n && isDigit(src[i])){ s += src[i]; adv(1); } }
+      else if(src[i] === '.' && !isIdStart(src[i+1] || '')){ s += '.'; adv(1); kind = 'double'; }
+      if(src[i] === 'e' || src[i] === 'E'){
+        let j = i + 1;
+        if(src[j] === '+' || src[j] === '-') j++;
+        if(isDigit(src[j] || '')){
+          kind = 'double'; s += src[i]; adv(1);
+          if(src[i] === '+' || src[i] === '-'){ s += src[i]; adv(1); }
+          while(i < n && isDigit(src[i])){ s += src[i]; adv(1); }
+        }
+      }
+      if(src[i] === 'l' || src[i] === 'L'){ adv(1); }
+      else if(src[i] === 'f' || src[i] === 'F'){ adv(1); kind = 'double'; }
+      else if(src[i] === 'd' || src[i] === 'D'){ adv(1); kind = 'double'; }
+      toks.push({type:'num', value: parseFloat(s), kind: kind, line: sl, col: sc});
+      continue;
+    }
+
+    if(ch === '"' || ch === "'"){
+      const quote = ch;
+      adv(1);
+      let s = '', closed = false;
+      while(i < n){
+        if(src[i] === quote){ closed = true; adv(1); break; }
+        if(src[i] === '\\'){
+          adv(1);
+          const e = src[i];
+          const map = {n:'\n', t:'\t', r:'\r', b:'\b', f:'\f', '0':'\0', '\\':'\\', '"':'"', "'":"'", 's':' '};
+          if(e === 'u'){
+            adv(1); let hex = '';
+            for(let k = 0; k < 4; k++){ hex += src[i]; adv(1); }
+            s += String.fromCharCode(parseInt(hex, 16) || 63);
+            continue;
+          }
+          s += (map[e] !== undefined ? map[e] : e);
+          adv(1);
+        } else {
+          if(src[i] === '\n' && quote === '"') throw new Error('Literal sin cerrar (línea ' + sl + ')');
+          s += src[i]; adv(1);
+        }
+      }
+      if(!closed) throw new Error('Literal sin cerrar (línea ' + sl + ')');
+      toks.push({type: quote === '"' ? 'str' : 'char', value: s, line: sl, col: sc});
+      continue;
+    }
+
+    let matched = null;
+    for(const op of OPERATORS){
+      if(src.startsWith(op, i)){ matched = op; break; }
+    }
+    if(matched){
+      adv(matched.length);
+      toks.push({type:'op', value: matched, line: sl, col: sc});
+      continue;
+    }
+
+    throw new Error("Carácter inesperado '" + ch + "' en línea " + line);
+  }
+  toks.push({type:'eof', value:'<EOF>', line: line, col: col});
+  return toks;
+}
+
+/* ============================================================
+   4. PARSER
+   ============================================================ */
+const BIN_PREC = {'||':1,'&&':2,'|':3,'^':4,'&':5,'==':6,'!=':6,'<':7,'>':7,'<=':7,'>=':7,
+  'instanceof':7,'<<':8,'>>':8,'>>>':8,'+':9,'-':9,'*':10,'/':10,'%':10};
+const ASSIGN_OPS = new Set(['=','+=','-=','*=','/=','%=','&=','|=','^=','<<=','>>=','>>>=']);
+const MODIFIERS = new Set(['public','private','protected','static','final','abstract','native','synchronized',
+  'transient','volatile','strictfp','default']);
+
+class Parser {
+  constructor(tokens){ this.toks = tokens; this.pos = 0; }
+  get cur(){ return this.toks[Math.min(this.pos, this.toks.length - 1)]; }
+  peek(o){ return this.toks[Math.min(this.pos + (o || 0), this.toks.length - 1)]; }
+  next(){ return this.toks[this.pos++]; }
+  at(v){ return this.cur.value === v; }
+  atType(t){ return this.cur.type === t; }
+  eat(v){ if(this.at(v)){ this.pos++; return true; } return false; }
+  must(v){ if(!this.at(v)) this.fail("se esperaba '" + v + "'"); return this.next(); }
+  mustId(){ if(this.cur.type !== 'id') this.fail('se esperaba un identificador'); return this.next().value; }
+  fail(m){ throw new Error('Error de sintaxis: ' + m + ' (línea ' + this.cur.line + ')'); }
+
+  skipGenerics(){
+    if(!this.at('<')) return;
+    let depth = 0;
+    while(true){
+      const tok = this.cur;
+      if(tok.type === 'eof') this.fail('genéricos sin cerrar');
+      if(tok.value === '<') depth++;
+      else if(tok.value === '>') depth--;
+      else if(tok.value === '>>') depth -= 2;
+      else if(tok.value === '>>>') depth -= 3;
+      this.next();
+      if(depth <= 0) break;
+    }
+  }
+
+  parseProgram(){
+    const classes = [];
+    while(!this.atType('eof')){
+      if(this.eat(';')) continue;
+      if(this.at('package') || this.at('import')){
+        while(!this.at(';') && !this.atType('eof')) this.next();
+        this.eat(';');
+        continue;
+      }
+      this.parseModifiers();
+      if(this.at('class') || this.at('interface') || this.at('enum')){
+        const kind = this.next().value;
+        classes.push(this.parseClass(kind));
+      } else {
+        this.fail('se esperaba "class", "interface" o "enum"');
+      }
+    }
+    return classes;
+  }
+
+  parseModifiers(){
+    const mods = [];
+    while(this.cur.type === 'kw' && MODIFIERS.has(this.cur.value)){
+      mods.push(this.next().value);
+    }
+    return mods;
+  }
+
+  parseClass(kind){
+    kind = kind || 'class';
+    const name = this.mustId();
+    let superName = null;
+    const interfaces = [];
+
+    if(kind === 'enum'){
+      this.must('{');
+      const constants = [];
+      while(!this.at('}') && !this.at(';')){
+        const cname = this.mustId();
+        let args = [];
+        if(this.at('(')) args = this.parseArgs();
+        constants.push({name: cname, args: args});
+        if(!this.eat(',')) break;
+      }
+      const members = [];
+      if(this.eat(';')){
+        while(!this.at('}') && !this.atType('eof')){
+          if(this.eat(';')) continue;
+          const m = this.parseMember(name);
+          if(m) members.push(m);
+        }
+      }
+      this.must('}');
+      return {type:'Enum', name: name, constants: constants, members: members, superName: null, interfaces: []};
+    }
+
+    if(this.eat('extends')) superName = this.parseTypeName();
+    if(this.eat('implements')){ do { interfaces.push(this.parseTypeName()); } while(this.eat(',')); }
+
+    this.must('{');
+    const members = [];
+    while(!this.at('}') && !this.atType('eof')){
+      if(this.eat(';')) continue;
+      const m = this.parseMember(name);
+      if(m) members.push(m);
+    }
+    this.must('}');
+    return {type:'Class', name: name, superName: superName, interfaces: interfaces, members: members};
+  }
+
+  parseTypeName(){
+    const n = this.mustId();
+    if(this.at('<')) this.skipGenerics();
+    while(this.at('.') && this.peek(1).type === 'id'){
+      this.next();
+      this.next();
+      if(this.at('<')) this.skipGenerics();
+    }
+    return n;
+  }
+
+  parseType(){
+    let name;
+    if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) name = this.next().value;
+    else name = this.mustId();
+    if(this.at('<')) this.skipGenerics();
+    let dims = 0;
+    while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; dims++; }
+    return {name: name, dims: dims};
+  }
+
+  parseParams(){
+    this.must('(');
+    const params = [];
+    if(!this.at(')')){
+      do {
+        if(this.at('final')) this.next();
+        let tname;
+        if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) tname = this.next().value;
+        else tname = this.mustId();
+        if(this.at('<')) this.skipGenerics();
+        let dims = 0;
+        while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; dims++; }
+        let variadic = false;
+        if(this.at('...')){ this.next(); variadic = true; }
+        const pname = this.mustId();
+        while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; dims++; }
+        params.push({name: pname, type:{name: tname, dims: dims}, variadic: variadic});
+      } while(this.eat(','));
+    }
+    this.must(')');
+    return params;
+  }
+
+  parseMember(className){
+    const mods = this.parseModifiers();
+
+    if(this.at('{')) return this.parseBlock();
+
+    if(this.cur.type === 'id' && this.peek(1).value === '(' && this.cur.value === className){
+      const name = this.next().value;
+      const params = this.parseParams();
+      let body = null;
+      if(this.at('{')) body = this.parseBlock();
+      else this.must(';');
+      return {type:'Ctor', name: name, params: params, body: body, mods: mods};
+    }
+
+    const varType = this.parseType();
+    const name = this.mustId();
+
+    if(this.at('(')){
+      const params = this.parseParams();
+      while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; }
+      if(this.eat('throws')){
+        do {
+          this.mustId();
+          if(this.at('.')){ this.next(); this.mustId(); }
+        } while(this.eat(','));
+      }
+      let body = null;
+      if(this.at('{')) body = this.parseBlock();
+      else this.must(';');
+      return {type:'Method', name: name, returnType: varType, params: params, body: body, mods: mods};
+    }
+
+    const decls = [];
+    do {
+      const dname = this.mustId();
+      let dims = 0;
+      while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; dims++; }
+      let init = null;
+      if(this.eat('=')){
+        init = this.at('{') ? this.parseArrayInit() : this.parseExpr();
+      }
+      decls.push({name: dname, init: init, dims: dims});
+    } while(this.eat(','));
+    this.must(';');
+    return {type:'Field', varType: varType, decls: decls, mods: mods};
+  }
+
+  parseBlock(){
+    this.must('{');
+    const stmts = [];
+    while(!this.at('}') && !this.atType('eof')) stmts.push(this.parseStmt());
+    this.must('}');
+    return {type:'Block', stmts: stmts};
+  }
+
+  parseStmt(){
+    const tok = this.cur;
+
+    if(tok.type === 'op'){
+      if(tok.value === '{') return this.parseBlock();
+      if(tok.value === ';'){ this.next(); return {type:'Empty'}; }
+    }
+
+    if(tok.type === 'kw'){
+      switch(tok.value){
+        case 'if': {
+          this.next();
+          this.must('(');
+          const cond = this.parseExpr();
+          this.must(')');
+          const then = this.parseStmt();
+          let els = null;
+          if(this.at('else')){ this.next(); els = this.parseStmt(); }
+          return {type:'If', cond: cond, then: then, els: els};
+        }
+        case 'while': {
+          this.next();
+          this.must('(');
+          const cond = this.parseExpr();
+          this.must(')');
+          return {type:'While', cond: cond, body: this.parseStmt()};
+        }
+        case 'do': {
+          this.next();
+          const body = this.parseStmt();
+          this.must('while');
+          this.must('(');
+          const cond = this.parseExpr();
+          this.must(')');
+          this.must(';');
+          return {type:'DoWhile', body: body, cond: cond};
+        }
+        case 'for': return this.parseFor();
+        case 'switch': return this.parseSwitch();
+        case 'return': {
+          this.next();
+          let arg = null;
+          if(!this.at(';')) arg = this.parseExpr();
+          this.must(';');
+          return {type:'Return', arg: arg};
+        }
+        case 'break': {
+          this.next();
+          let lbl = null;
+          if(this.cur.type === 'id') lbl = this.next().value;
+          this.must(';');
+          return {type:'Break', label: lbl};
+        }
+        case 'continue': {
+          this.next();
+          let lbl = null;
+          if(this.cur.type === 'id') lbl = this.next().value;
+          this.must(';');
+          return {type:'Continue', label: lbl};
+        }
+        case 'throw': {
+          this.next();
+          const arg = this.parseExpr();
+          this.must(';');
+          return {type:'Throw', arg: arg};
+        }
+        case 'try': return this.parseTry();
+        case 'synchronized': {
+          this.next();
+          this.must('(');
+          this.parseExpr();
+          this.must(')');
+          return this.parseBlock();
+        }
+        case 'final': { this.next(); return this.parseLocalOrExpr(); }
+        default:
+          if(PRIMITIVES.has(tok.value)){
+            const d = this.parseLocalDecl();
+            if(d) return d;
+          }
+      }
+    }
+
+    return this.parseLocalOrExpr();
+  }
+
+  parseLocalOrExpr(){
+    const save = this.pos;
+    try {
+      const d = this.parseLocalDecl();
+      if(d) return d;
+    } catch(e){ /* no era declaración */ }
+    this.pos = save;
+    const expr = this.parseExprList();
+    this.must(';');
+    return {type:'ExprStmt', expr: expr};
+  }
+
+  parseLocalDecl(needsSemi){
+    if(needsSemi === undefined) needsSemi = true;
+    const start = this.pos;
+    if(this.at('final')) this.next();
+    let typeName;
+    if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) typeName = this.next().value;
+    else if(this.cur.type === 'id') typeName = this.next().value;
+    else { this.pos = start; return null; }
+    if(this.at('<')) this.skipGenerics();
+    let dims = 0;
+    while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; dims++; }
+    if(this.cur.type !== 'id'){ this.pos = start; return null; }
+
+    const decls = [];
+    while(true){
+      const name = this.mustId();
+      let d2 = 0;
+      while(this.at('[') && this.peek(1).value === ']'){ this.pos += 2; d2++; }
+      let init = null;
+      if(this.eat('=')){
+        init = this.at('{') ? this.parseArrayInit() : this.parseExpr();
+      }
+      decls.push({name: name, init: init, dims: d2});
+      if(!this.eat(',')) break;
+    }
+    if(needsSemi) this.must(';');
+    return {type:'LocalDecl', varType:{name: typeName, dims: dims}, decls: decls};
+  }
+
+  parseFor(){
+    this.must('for');
+    this.must('(');
+
+    const save = this.pos;
+    let forEach = false;
+    try {
+      if(this.at('final')) this.next();
+      if((this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) || this.cur.type === 'id'){
+        this.next();
+        if(this.at('<')) this.skipGenerics();
+        while(this.at('[') && this.peek(1).value === ']') this.pos += 2;
+        if(this.cur.type === 'id' && this.peek(1).value === ':') forEach = true;
+      }
+    } catch(e){ /* ignore */ }
+    this.pos = save;
+
+    if(forEach){
+      if(this.at('final')) this.next();
+      let tn;
+      if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) tn = this.next().value;
+      else tn = this.mustId();
+      if(this.at('<')) this.skipGenerics();
+      while(this.at('[') && this.peek(1).value === ']') this.pos += 2;
+      const name = this.mustId();
+      this.must(':');
+      const iter = this.parseExpr();
+      this.must(')');
+      return {type:'ForEach', varName: name, iter: iter, body: this.parseStmt()};
+    }
+
+    let init = null;
+    if(!this.at(';')){
+      const s2 = this.pos;
+      let d = null;
+      try { d = this.parseLocalDecl(false); } catch(e){ this.pos = s2; }
+      if(d) init = d;
+      else { this.pos = s2; init = {type:'ExprStmt', expr: this.parseExprList()}; }
+    }
+    this.must(';');
+    const cond = this.at(';') ? null : this.parseExpr();
+    this.must(';');
+    const update = this.at(')') ? null : this.parseExprList();
+    this.must(')');
+    return {type:'For', init: init, cond: cond, update: update, body: this.parseStmt()};
+  }
+
+  parseSwitch(){
+    this.must('switch');
+    this.must('(');
+    const disc = this.parseExpr();
+    this.must(')');
+    this.must('{');
+    const cases = [];
+    while(!this.at('}')){
+      let test = null;
+      if(this.eat('case')){
+        test = this.parseExpr();
+        while(this.eat(',')) this.parseExpr();
+        if(!this.eat('->')) this.must(':');
+      } else if(this.eat('default')){
+        if(!this.eat('->')) this.must(':');
+      } else {
+        this.fail("se esperaba 'case' o 'default'");
+      }
+      const stmts = [];
+      while(!this.at('case') && !this.at('default') && !this.at('}') && !this.atType('eof')){
+        stmts.push(this.parseStmt());
+      }
+      cases.push({test: test, stmts: stmts});
+    }
+    this.must('}');
+    return {type:'Switch', disc: disc, cases: cases};
+  }
+
+  parseTry(){
+    this.must('try');
+    const block = this.parseBlock();
+    const catches = [];
+    while(this.at('catch')){
+      this.next();
+      this.must('(');
+      this.mustId();
+      while(this.eat('|')) this.mustId();
+      const name = this.mustId();
+      this.must(')');
+      catches.push({name: name, body: this.parseBlock()});
+    }
+    let fin = null;
+    if(this.at('finally')){ this.next(); fin = this.parseBlock(); }
+    return {type:'Try', block: block, catches: catches, fin: fin};
+  }
+
+  parseArrayInit(){
+    this.must('{');
+    const elems = [];
+    while(!this.at('}')){
+      elems.push(this.at('{') ? this.parseArrayInit() : this.parseExpr());
+      if(!this.eat(',')) break;
+    }
+    this.must('}');
+    return {type:'ArrayInit', elems: elems};
+  }
+
+  parseExprList(){
+    const list = [this.parseExpr()];
+    while(this.eat(',')) list.push(this.parseExpr());
+    return list.length === 1 ? list[0] : {type:'Comma', list: list};
+  }
+
+  parseExpr(){ return this.parseAssignment(); }
+
+  parseAssignment(){
+    const save = this.pos;
+    const lambda = this.tryParseLambda();
+    if(lambda) return lambda;
+    this.pos = save;
+
+    const left = this.parseTernary();
+    if(this.cur.type === 'op' && ASSIGN_OPS.has(this.cur.value)){
+      const op = this.next().value;
+      const value = this.parseAssignment();
+      return {type:'Assign', op: op, target: left, value: value};
+    }
+    return left;
+  }
+
+  tryParseLambda(){
+    if(this.cur.type === 'id' && this.peek(1).value === '->'){
+      const name = this.next().value;
+      this.next();
+      const body = this.at('{') ? this.parseBlock() : this.parseExpr();
+      return {type:'Lambda', params:[{name: name}], body: body, exprBody: body.type !== 'Block'};
+    }
+    if(this.at('(')){
+      const save = this.pos;
+      this.next();
+      const params = [];
+      let ok = true;
+      while(!this.at(')')){
+        if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)){ this.next(); }
+        else if(this.cur.type === 'id'){ this.next(); if(this.at('<')) this.skipGenerics(); }
+        else { ok = false; break; }
+        if(this.cur.type === 'id') params.push({name: this.next().value});
+        else { ok = false; break; }
+        if(!this.eat(',')) break;
+      }
+      if(ok && this.at(')')){
+        this.next();
+        if(this.at('->')){
+          this.next();
+          const body = this.at('{') ? this.parseBlock() : this.parseExpr();
+          return {type:'Lambda', params: params, body: body, exprBody: body.type !== 'Block'};
+        }
+      }
+      this.pos = save;
+    }
+    return null;
+  }
+
+  parseTernary(){
+    const cond = this.parseBinary(0);
+    if(this.at('?')){
+      this.next();
+      const a = this.parseAssignment();
+      this.must(':');
+      const b = this.parseAssignment();
+      return {type:'Ternary', cond: cond, then: a, else: b};
+    }
+    return cond;
+  }
+
+  parseBinary(minPrec){
+    let left = this.parseUnary();
+    while(true){
+      const tok = this.cur;
+      let op = null;
+      if(tok.type === 'op' && BIN_PREC[tok.value] !== undefined) op = tok.value;
+      else if(tok.type === 'kw' && tok.value === 'instanceof') op = 'instanceof';
+      if(op === null) break;
+      const prec = BIN_PREC[op];
+      if(prec < minPrec) break;
+      this.next();
+      if(op === 'instanceof'){
+        const target = this.parseType();
+        left = {type:'InstanceOf', expr: left, target: target};
+        continue;
+      }
+      const right = this.parseBinary(prec + 1);
+      left = {type:'Binary', op: op, left: left, right: right};
+    }
+    return left;
+  }
+
+  isCastAhead(){
+    const a = this.peek(1), b = this.peek(2);
+    if(a.type === 'kw' && PRIMITIVES.has(a.value) && a.value !== 'void') return true;
+    if(a.type === 'id' && /^[A-Z]/.test(a.value) && b.value === ')') return true;
+    return false;
+  }
+
+  parseUnary(){
+    const tok = this.cur;
+    if(tok.type === 'op' && (tok.value === '!' || tok.value === '~' || tok.value === '-' || tok.value === '+')){
+      this.next();
+      return {type:'Unary', op: tok.value, operand: this.parseUnary()};
+    }
+    if(tok.type === 'op' && (tok.value === '++' || tok.value === '--')){
+      this.next();
+      return {type:'Update', op: tok.value, operand: this.parseUnary(), prefix: true};
+    }
+    if(tok.type === 'op' && tok.value === '(' && this.isCastAhead()){
+      this.next();
+      const type = this.parseType();
+      this.must(')');
+      return {type:'Cast', target: type, operand: this.parseUnary()};
+    }
+    return this.parsePostfix();
+  }
+
+  parsePostfix(){
+    let expr = this.parsePrimary();
+    while(true){
+      if(this.at('.')){
+        this.next();
+        if(this.cur.type !== 'id' && this.cur.type !== 'kw') this.fail('se esperaba nombre de miembro');
+        const name = this.next().value;
+        expr = {type:'Member', object: expr, name: name};
+      } else if(this.at('(')){
+        const args = this.parseArgs();
+        expr = {type:'Call', callee: expr, args: args};
+      } else if(this.at('[')){
+        this.next();
+        const index = this.parseExpr();
+        this.must(']');
+        expr = {type:'Index', object: expr, index: index};
+      } else if(this.at('++') || this.at('--')){
+        const op = this.next().value;
+        expr = {type:'Update', op: op, operand: expr, prefix: false};
+      } else break;
+    }
+    return expr;
+  }
+
+  parseArgs(){
+    this.must('(');
+    const args = [];
+    if(!this.at(')')){
+      do { args.push(this.parseExpr()); } while(this.eat(','));
+    }
+    this.must(')');
+    return args;
+  }
+
+  parsePrimary(){
+    const tok = this.cur;
+    if(tok.type === 'num'){ this.next(); return {type:'Num', value: tok.value, kind: tok.kind}; }
+    if(tok.type === 'str'){ this.next(); return {type:'Str', value: tok.value}; }
+    if(tok.type === 'char'){ this.next(); return {type:'Char', value: tok.value}; }
+
+    if(tok.type === 'kw'){
+      if(tok.value === 'true' || tok.value === 'false'){ this.next(); return {type:'Bool', value: tok.value === 'true'}; }
+      if(tok.value === 'null'){ this.next(); return {type:'Null'}; }
+      if(tok.value === 'this'){ this.next(); return {type:'This'}; }
+      if(tok.value === 'super'){ this.next(); return {type:'Super'}; }
+      if(tok.value === 'new') return this.parseNew();
+    }
+    if(tok.type === 'op' && tok.value === '('){
+      this.next();
+      const e = this.parseExpr();
+      this.must(')');
+      return e;
+    }
+    if(tok.type === 'op' && tok.value === '{') return this.parseArrayInit();
+    if(tok.type === 'id'){ this.next(); return {type:'Id', name: tok.value}; }
+
+    this.fail("expresión inesperada '" + tok.value + "'");
+  }
+
+  parseNew(){
+    this.must('new');
+    let typeName;
+    if(this.cur.type === 'kw' && PRIMITIVES.has(this.cur.value)) typeName = this.next().value;
+    else typeName = this.mustId();
+    if(this.at('<')) this.skipGenerics();
+
+    const dims = [];
+    while(this.at('[')){
+      this.next();
+      if(this.at(']')){ this.must(']'); dims.push(null); }
+      else { const e = this.parseExpr(); this.must(']'); dims.push(e); }
+    }
+    if(dims.length > 0){
+      const init = this.at('{') ? this.parseArrayInit() : null;
+      return {type:'NewArray', elemType: typeName, dims: dims, init: init};
+    }
+    const args = this.parseArgs();
+    return {type:'NewObject', className: typeName, args: args};
+  }
+}
+
+/* ============================================================
+   5. VALORES EN TIEMPO DE EJECUCIÓN
+   ============================================================ */
+class Num {
+  constructor(v, kind){ this.v = v; this.kind = kind || 'int'; }
+}
+const I = v => new Num(Math.trunc(v), 'int');
+const D = v => new Num(v, 'double');
+const C = v => new Num(v, 'char');
+
+function formatDouble(x){
+  if(Number.isNaN(x)) return 'NaN';
+  if(!Number.isFinite(x)) return x > 0 ? 'Infinity' : '-Infinity';
+  if(Number.isInteger(x) && Math.abs(x) < 1e21) return x.toFixed(1);
+  return String(x);
+}
+
+let objHash = 0x1000;
+
+function toStr(v){
+  if(v === null || v === undefined) return 'null';
+  if(typeof v === 'string') return v;
+  if(typeof v === 'boolean') return v ? 'true' : 'false';
+  if(v instanceof Num){
+    if(v.kind === 'char') return String.fromCharCode(v.v);
+    if(v.kind === 'double') return formatDouble(v.v);
+    return String(v.v);
+  }
+  if(Array.isArray(v)) return '[' + v.map(x => toStr(x)).join(', ') + ']';
+  if(v instanceof JObject) return v.cls.name + '@' + (v.hash || '0');
+  if(v instanceof EnumValue) return v.enumName + '.' + v.name;
+  if(v instanceof LambdaValue) return 'lambda@' + (v.hash || '0');
+  if(v && v.__native === 'ArrayList') return '[' + v.items.map(x => toStr(x)).join(', ') + ']';
+  if(v && v.__native === 'HashMap') return '{' + Array.from(v.map.entries()).map(e => toStr(e[0]) + '=' + toStr(e[1])).join(', ') + '}';
+  if(v && v.__native === 'HashSet') return '[' + Array.from(v.set).map(x => toStr(x)).join(', ') + ']';
+  if(v && v.__native === 'StringBuilder') return v.buf;
+  if(v && v.__native) return v.__native;
+  return String(v);
+}
+
+function equalsVal(a, b){
+  if(a instanceof Num && b instanceof Num) return a.v === b.v;
+  if(a === null || b === null) return a === b;
+  return a === b;
+}
+
+function defaultValue(type){
+  if(!type || type.dims > 0) return null;
+  switch(type.name){
+    case 'int': case 'long': case 'short': case 'byte': return I(0);
+    case 'double': case 'float': return D(0);
+    case 'char': return C(0);
+    case 'boolean': return false;
+    default: return null;
+  }
+}
+
+function toIntVal(v){
+  if(v instanceof Num) return Math.trunc(v.v);
+  if(typeof v === 'boolean') return v ? 1 : 0;
+  if(typeof v === 'number') return Math.trunc(v);
+  if(v === null) throw new Error('NullPointerException: se esperaba un número');
+  throw new Error('Se esperaba un valor numérico');
+}
+function toNumVal(v){
+  if(v instanceof Num) return v.v;
+  if(typeof v === 'boolean') return v ? 1 : 0;
+  if(typeof v === 'number') return v;
+  if(v === null) throw new Error('NullPointerException: se esperaba un número');
+  throw new Error('Se esperaba un valor numérico');
+}
+
+/* ============================================================
+   6. ÁMBITOS
+   ============================================================ */
+class Scope {
+  constructor(parent){
+    this.parent = parent || null;
+    this.vars = new Map();
+    this.thisObj = null;
+    this.cls = null;
+  }
+  declare(n, v){ this.vars.set(n, v); }
+  find(n){
+    let s = this;
+    while(s){
+      if(s.vars.has(n)) return s;
+      s = s.parent;
+    }
+    return null;
+  }
+  get(n){
+    const s = this.find(n);
+    if(s) return s.vars.get(n);
+    let t2 = this;
+    while(t2){ if(t2.thisObj && t2.thisObj.fields.has(n)) return t2.thisObj.fields.get(n); t2 = t2.parent; }
+    t2 = this;
+    while(t2){ if(t2.cls && t2.cls.staticFields.has(n)) return t2.cls.staticFields.get(n); t2 = t2.parent; }
+    throw new Error("La variable '" + n + "' no existe");
+  }
+  has(n){
+    if(this.find(n)) return true;
+    let t2 = this;
+    while(t2){ if(t2.thisObj && t2.thisObj.fields.has(n)) return true; t2 = t2.parent; }
+    return false;
+  }
+  set(n, v){
+    const s = this.find(n);
+    if(s){ s.vars.set(n, v); return; }
+    let t2 = this;
+    while(t2){ if(t2.thisObj && t2.thisObj.fields.has(n)){ t2.thisObj.fields.set(n, v); return; } t2 = t2.parent; }
+    t2 = this;
+    while(t2){ if(t2.cls && t2.cls.staticFields.has(n)){ t2.cls.staticFields.set(n, v); return; } t2 = t2.parent; }
+    throw new Error("La variable '" + n + "' no existe");
+  }
+  getThis(){
+    let s = this;
+    while(s){ if(s.thisObj) return s.thisObj; s = s.parent; }
+    throw new Error("'this' no está disponible en contexto estático");
+  }
+  getClass(){
+    let s = this;
+    while(s){ if(s.cls) return s.cls; s = s.parent; }
+    return null;
+  }
+}
+
+/* ============================================================
+   7. CLASES Y OBJETOS
+   ============================================================ */
+class JClass {
+  constructor(decl){
+    this.decl = decl;
+    this.name = decl.name;
+    this.superName = decl.superName;
+    this.superClass = null;
+    this.staticFields = new Map();
+    this.staticInits = [];
+    this.instanceFields = [];
+    this.methods = new Map();
+    this.ctors = [];
+    this.isEnum = decl.type === 'Enum';
+    this.enumConstants = decl.constants || [];
+    this.build();
+  }
+  build(){
+    const members = this.decl.members || [];
+    for(const m of members){
+      if(m.type === 'Field'){
+        const isStatic = m.mods && m.mods.indexOf('static') >= 0;
+        for(const d of m.decls){
+          if(isStatic){
+            this.staticFields.set(d.name, defaultValue(m.varType));
+            if(d.init) this.staticInits.push({name: d.name, init: d.init});
+          } else {
+            this.instanceFields.push({name: d.name, type: m.varType, init: d.init});
+          }
+        }
+      } else if(m.type === 'Method'){
+        if(!this.methods.has(m.name)) this.methods.set(m.name, []);
+        this.methods.get(m.name).push(m);
+      } else if(m.type === 'Ctor'){
+        this.ctors.push(m);
+      }
+    }
+  }
+  findMethod(name, argc){
+    let c = this;
+    while(c){
+      const list = c.methods.get(name);
+      if(list && list.length){
+        for(const m of list){
+          if(m.params.length === argc) return {decl: m, owner: c};
+          if(m.params.length > 0 && m.params[m.params.length - 1].variadic && argc >= m.params.length - 1){
+            return {decl: m, owner: c};
+          }
+        }
+        return {decl: list[0], owner: c};
+      }
+      c = c.superClass;
+    }
+    return null;
+  }
+}
+
+class JObject {
+  constructor(cls){
+    this.cls = cls;
+    this.fields = new Map();
+    this.hash = (objHash++).toString(16);
+  }
+}
+
+class EnumValue {
+  constructor(cls, name, args){
+    this.enumCls = cls;
+    this.enumName = cls.name;
+    this.name = name;
+    this.args = args || [];
+    this.fields = new Map();
+    this.hash = (objHash++).toString(16);
+  }
+}
+
+class LambdaValue {
+  constructor(params, body, exprBody, capturedScope){
+    this.params = params;
+    this.body = body;
+    this.exprBody = exprBody;
+    this.scope = capturedScope;
+    this.hash = (objHash++).toString(16);
+  }
+  invoke(args){
+    const s = new Scope(this.scope);
+    this.params.forEach((p, i) => s.declare(p.name, args[i] !== undefined ? args[i] : null));
+    if(this.exprBody) return evaluate(this.body, s);
+    try { execStmt(this.body, s); }
+    catch(e){ if(e instanceof ReturnSignal) return e.value; throw e; }
+    return null;
+  }
+}
+
+/* señales de control */
+class ReturnSignal { constructor(v){ this.value = v; } }
+class BreakSignal { constructor(l){ this.label = l; } }
+class ContinueSignal { constructor(l){ this.label = l; } }
+class JavaThrow { constructor(v){ this.value = v; } }
+
+/* ============================================================
+   8. SALIDA
+   ============================================================ */
+let OUT = null;
+let outLen = 0;
+
+function printOut(s){
+  if(!OUT) return;
+  if(outLen > 250000) return;
+  outLen += s.length;
+  OUT.appendChild(document.createTextNode(s));
+  OUT.scrollTop = OUT.scrollHeight;
+}
+
+function javaFormat(fmt, args){
+  let ai = 0;
+  return toStr(fmt).replace(/%([-+0-9.]*)([dfsScbBxXne%])/g, function(m, flags, conv){
+    if(conv === '%') return '%';
+    if(conv === 'n') return '\n';
+    const a = args[ai++];
+    switch(conv){
+      case 'd': return String(toIntVal(a));
+      case 'f': {
+        const dec = (flags.match(/\.(\d+)/) || [])[1];
+        return toNumVal(a).toFixed(dec ? parseInt(dec, 10) : 6);
+      }
+      case 's': case 'S': return toStr(a);
+      case 'c': return String.fromCharCode(toIntVal(a));
+      case 'b': case 'B': return String(!!a);
+      case 'x': return toIntVal(a).toString(16);
+      case 'X': return toIntVal(a).toString(16).toUpperCase();
+      default: return m;
+    }
+  });
+}
+
+/* ============================================================
+   9. INTÉRPRETE
+   ============================================================ */
+let currentRT = null;
+let stepCount = 0;
+
+function tick(){
+  if(++stepCount > 30000000) throw new Error('Ejecución detenida: demasiadas operaciones.');
+}
+
+function binaryOp(op, a, b){
+  switch(op){
+    case '+':
+      if(typeof a === 'string' || typeof b === 'string') return toStr(a) + toStr(b);
+      if(a instanceof Num && b instanceof Num){
+        const kind = (a.kind === 'double' || b.kind === 'double') ? 'double' : 'int';
+        return new Num(a.v + b.v, kind);
+      }
+      throw new Error('Operación + no válida');
+    case '-': case '*': case '/': case '%':
+      if(!(a instanceof Num) || !(b instanceof Num)) throw new Error('Operación ' + op + ' no válida');
+      const isD = a.kind === 'double' || b.kind === 'double';
+      if(op === '-') return new Num(a.v - b.v, isD ? 'double' : 'int');
+      if(op === '*') return new Num(a.v * b.v, isD ? 'double' : 'int');
+      if(op === '/'){
+        if(isD) return D(a.v / b.v);
+        if(b.v === 0) throw new Error('ArithmeticException: / por cero');
+        return I(Math.trunc(a.v / b.v));
+      }
+      if(op === '%'){
+        if(isD) return D(a.v % b.v);
+        if(b.v === 0) throw new Error('ArithmeticException: % por cero');
+        return I(a.v % b.v);
+      }
+      break;
+    case '==': return equalsVal(a, b);
+    case '!=': return !equalsVal(a, b);
+    case '<': case '>': case '<=': case '>=':
+      let x, y;
+      if(a instanceof Num && b instanceof Num){ x = a.v; y = b.v; }
+      else if(typeof a === 'string' && typeof b === 'string'){ x = a; y = b; }
+      else throw new Error('Comparación no válida');
+      if(op === '<') return x < y;
+      if(op === '>') return x > y;
+      if(op === '<=') return x <= y;
+      return x >= y;
+    case '&&': return !!a && !!b;
+    case '||': return !!a || !!b;
+    case '&': if(typeof a === 'boolean') return a && b; return I(toIntVal(a) & toIntVal(b));
+    case '|': if(typeof a === 'boolean') return a || b; return I(toIntVal(a) | toIntVal(b));
+    case '^': if(typeof a === 'boolean') return a !== b; return I(toIntVal(a) ^ toIntVal(b));
+    case '<<': return I(toIntVal(a) << toIntVal(b));
+    case '>>': return I(toIntVal(a) >> toIntVal(b));
+    case '>>>': return I(toIntVal(a) >>> toIntVal(b));
+  }
+  throw new Error("Operador '" + op + "' no soportado");
+}
+
+function getMember(obj, name){
+  if(obj === null || obj === undefined)
+    throw new Error("NullPointerException: no se puede acceder a '" + name + "' sobre null");
+
+  if(obj && obj.__native === 'System'){
+    if(name === 'out' || name === 'err') return {__native:'PrintStream'};
+    throw new Error('System.' + name + ' no soportado');
+  }
+  if(obj && obj.__native === 'Math'){
+    if(name === 'PI') return D(Math.PI);
+    if(name === 'E') return D(Math.E);
+    throw new Error('Math.' + name + ' no soportado');
+  }
+  if(obj && obj.__native === 'Integer'){
+    if(name === 'MAX_VALUE') return I(2147483647);
+    if(name === 'MIN_VALUE') return I(-2147483648);
+    throw new Error('Integer.' + name + ' no soportado');
+  }
+  if(obj && obj.__native === 'Double'){
+    if(name === 'MAX_VALUE') return D(Number.MAX_VALUE);
+    if(name === 'NaN') return D(NaN);
+    if(name === 'POSITIVE_INFINITY') return D(Infinity);
+    throw new Error('Double.' + name + ' no soportado');
+  }
+  if(obj instanceof JObject){
+    if(!obj.fields.has(name)) throw new Error("El campo '" + name + "' no existe en " + obj.cls.name);
+    return obj.fields.get(name);
+  }
+  if(obj instanceof EnumValue){
+    if(name === 'name') return obj.name;
+    if(name === 'ordinal') return I(obj.enumCls.enumConstants.findIndex(c => c.name === obj.name));
+    throw new Error('Enum ' + obj.enumName + '.' + name + ' no soportado');
+  }
+  if(Array.isArray(obj)){
+    if(name === 'length') return I(obj.length);
+    throw new Error("El arreglo no tiene el miembro '" + name + "'");
+  }
+  throw new Error("No se puede acceder a '" + name + "'");
+}
+
+function callMethod(recv, name, args){
+  if(recv === null || recv === undefined)
+    throw new Error('NullPointerException: no se puede invocar ' + name + '() sobre null');
+
+  if(recv instanceof JObject){
+    const found = recv.cls.findMethod(name, args.length);
+    if(!found) throw new Error('El método ' + name + '() no existe en ' + recv.cls.name);
+    return invokeUserMethod(recv, found.owner, found.decl, args);
+  }
+  if(recv instanceof EnumValue){
+    if(name === 'name') return recv.name;
+    if(name === 'ordinal') return I(recv.enumCls.enumConstants.findIndex(c => c.name === recv.name));
+    if(name === 'toString') return recv.enumName + '.' + recv.name;
+    throw new Error('Método ' + name + ' no soportado en enum');
+  }
+  if(recv instanceof LambdaValue){
+    if(name === 'run' || name === 'call' || name === 'get') return recv.invoke([]);
+    if(name === 'apply') return recv.invoke([args[0]]);
+    if(name === 'accept'){ recv.invoke([args[0]]); return null; }
+    if(name === 'test') return !!recv.invoke([args[0]]);
+    throw new Error('Lambda.' + name + '() no soportado');
+  }
+  if(recv && recv.__native) return nativeMethod(recv, name, args);
+  if(typeof recv === 'string') return stringMethod(recv, name, args);
+  if(Array.isArray(recv)){
+    if(name === 'clone') return recv.slice();
+    if(name === 'toString') return toStr(recv);
+    if(name === 'length') return I(recv.length);
+    throw new Error(name + '() no soportado en arreglos');
+  }
+  if(recv instanceof Num){
+    if(name === 'toString') return toStr(recv);
+    if(name === 'intValue' || name === 'longValue' || name === 'doubleValue') return recv;
+    throw new Error(name + '() no soportado en primitivos');
+  }
+  throw new Error('No se puede invocar ' + name + '()');
+}
+
+function stringMethod(s, name, args){
+  const A = args;
+  switch(name){
+    case 'length': return I(s.length);
+    case 'charAt': return C(s.charCodeAt(toIntVal(A[0])));
+    case 'substring': {
+      const a = toIntVal(A[0]);
+      return A.length > 1 ? s.substring(a, toIntVal(A[1])) : s.substring(a);
+    }
+    case 'indexOf': return I(A.length > 1 ? s.indexOf(toStr(A[0]), toIntVal(A[1])) : s.indexOf(toStr(A[0])));
+    case 'lastIndexOf': return I(s.lastIndexOf(toStr(A[0])));
+    case 'toUpperCase': return s.toUpperCase();
+    case 'toLowerCase': return s.toLowerCase();
+    case 'trim': case 'strip': return s.trim();
+    case 'isEmpty': return s.length === 0;
+    case 'isBlank': return s.trim().length === 0;
+    case 'equals': return s === toStr(A[0]);
+    case 'equalsIgnoreCase': return s.toLowerCase() === toStr(A[0]).toLowerCase();
+    case 'compareTo': return I(s < toStr(A[0]) ? -1 : (s > toStr(A[0]) ? 1 : 0));
+    case 'contains': return s.indexOf(toStr(A[0])) >= 0;
+    case 'startsWith': return s.indexOf(toStr(A[0])) === 0;
+    case 'endsWith': return s.slice(-toStr(A[0]).length) === toStr(A[0]);
+    case 'replace': return s.split(toStr(A[0])).join(toStr(A[1]));
+    case 'concat': return s + toStr(A[0]);
+    case 'repeat': return s.repeat(toIntVal(A[0]));
+    case 'split': return s.split(toStr(A[0]));
+    case 'toCharArray': return Array.from(s).map(function(ch){ return C(ch.charCodeAt(0)); });
+    case 'toString': return s;
+    case 'hashCode': {
+      let h = 0;
+      for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return I(h);
+    }
+    case 'codePointAt': return I(s.codePointAt(toIntVal(A[0])));
+    case 'valueOf': return toStr(A[0]);
+    case 'format': return javaFormat(A[0], A.slice(1));
+  }
+  throw new Error('String.' + name + '() no soportado');
+}
+
+function invokeUserMethod(thisObj, ownerCls, decl, argVals){
+  if(!decl.body) return null;
+  const scope = new Scope(currentRT.globalScope);
+  scope.thisObj = thisObj;
+  scope.cls = ownerCls;
+  decl.params.forEach(function(p, i){
+    let v = i < argVals.length ? argVals[i] : defaultValue(p.type);
+    if(p.variadic && i === decl.params.length - 1){
+      v = argVals.slice(i);
+    }
+    scope.declare(p.name, v);
+  });
+  try { execStmt(decl.body, scope); }
+  catch(e){ if(e instanceof ReturnSignal) return e.value; throw e; }
+  return null;
+}
+
+function nativeMethod(recv, name, args){
+  const kind = recv.__native;
+
+  if(kind === 'PrintStream'){
+    if(name === 'println'){ printOut(args.length ? toStr(args[0]) + '\n' : '\n'); return null; }
+    if(name === 'print'){ printOut(args.length ? toStr(args[0]) : ''); return null; }
+    if(name === 'printf' || name === 'format'){ printOut(javaFormat(args[0], args.slice(1))); return recv; }
+    throw new Error('PrintStream.' + name + '() no soportado');
+  }
+
+  if(kind === 'System'){
+    if(name === 'currentTimeMillis') return I(Date.now());
+    if(name === 'nanoTime') return I(Math.round(performance.now() * 1e6));
+    if(name === 'exit') return null;
+    throw new Error('System.' + name + '() no soportado');
+  }
+
+  if(kind === 'Math'){
+    const n = function(i){ return toNumVal(args[i]); };
+    const isDbl = args.some(function(a){ return a instanceof Num && a.kind === 'double'; });
+    switch(name){
+      case 'abs':
+        if(args[0] instanceof Num && args[0].kind === 'double') return D(Math.abs(n(0)));
+        return I(Math.abs(toIntVal(args[0])));
+      case 'max':
+        if(isDbl) return D(Math.max(n(0), n(1)));
+        return I(Math.max(toIntVal(args[0]), toIntVal(args[1])));
+      case 'min':
+        if(isDbl) return D(Math.min(n(0), n(1)));
+        return I(Math.min(toIntVal(args[0]), toIntVal(args[1])));
+      case 'pow': return D(Math.pow(n(0), n(1)));
+      case 'sqrt': return D(Math.sqrt(n(0)));
+      case 'cbrt': return D(Math.cbrt(n(0)));
+      case 'floor': return D(Math.floor(n(0)));
+      case 'ceil': return D(Math.ceil(n(0)));
+      case 'round': return I(Math.round(n(0)));
+      case 'random': return D(Math.random());
+      case 'sin': return D(Math.sin(n(0)));
+      case 'cos': return D(Math.cos(n(0)));
+      case 'tan': return D(Math.tan(n(0)));
+      case 'log': return D(Math.log(n(0)));
+      case 'log10': return D(Math.log10(n(0)));
+      case 'exp': return D(Math.exp(n(0)));
+      case 'hypot': return D(Math.hypot(n(0), n(1)));
+      case 'signum': return D(Math.sign(n(0)));
+      case 'toRadians': return D(n(0) * Math.PI / 180);
+      case 'toDegrees': return D(n(0) * 180 / Math.PI);
+    }
+    throw new Error('Math.' + name + '() no soportado');
+  }
+
+  if(kind === 'Integer'){
+    switch(name){
+      case 'parseInt': return I(parseInt(toStr(args[0]).trim(), args.length > 1 ? toIntVal(args[1]) : 10));
+      case 'valueOf': return I(toIntVal(args[0]));
+      case 'toString': return String(toIntVal(args[0]));
+      case 'toBinaryString': return toIntVal(args[0]).toString(2);
+      case 'toHexString': return toIntVal(args[0]).toString(16);
+      case 'compare': return I(Math.sign(toIntVal(args[0]) - toIntVal(args[1])));
+      case 'max': return I(Math.max(toIntVal(args[0]), toIntVal(args[1])));
+      case 'min': return I(Math.min(toIntVal(args[0]), toIntVal(args[1])));
+      case 'sum': return I(toIntVal(args[0]) + toIntVal(args[1]));
+    }
+    throw new Error('Integer.' + name + '() no soportado');
+  }
+
+  if(kind === 'Double'){
+    switch(name){
+      case 'parseDouble': return D(parseFloat(toStr(args[0]).trim()));
+      case 'valueOf': return D(toNumVal(args[0]));
+      case 'toString': return formatDouble(toNumVal(args[0]));
+      case 'isNaN': return Number.isNaN(toNumVal(args[0]));
+      case 'isInfinite': return !Number.isFinite(toNumVal(args[0]));
+      case 'compare': return I(Math.sign(toNumVal(args[0]) - toNumVal(args[1])));
+    }
+    throw new Error('Double.' + name + '() no soportado');
+  }
+
+  if(kind === 'Character'){
+    const ch = String.fromCharCode(toIntVal(args[0]));
+    switch(name){
+      case 'isDigit': return /[0-9]/.test(ch);
+      case 'isLetter': return /[A-Za-z]/.test(ch);
+      case 'isLetterOrDigit': return /[A-Za-z0-9]/.test(ch);
+      case 'isUpperCase': return /[A-Z]/.test(ch);
+      case 'isLowerCase': return /[a-z]/.test(ch);
+      case 'toUpperCase': return C(ch.toUpperCase().charCodeAt(0));
+      case 'toLowerCase': return C(ch.toLowerCase().charCodeAt(0));
+      case 'toString': return ch;
+    }
+    throw new Error('Character.' + name + '() no soportado');
+  }
+
+  if(kind === 'Boolean'){
+    if(name === 'parseBoolean') return toStr(args[0]).toLowerCase() === 'true';
+    if(name === 'toString') return toStr(args[0]);
+    if(name === 'valueOf') return !!args[0];
+    throw new Error('Boolean.' + name + '() no soportado');
+  }
+
+  if(kind === 'String'){
+    switch(name){
+      case 'valueOf': return toStr(args[0]);
+      case 'format': return javaFormat(args[0], args.slice(1));
+      case 'join': return args.slice(1).map(function(x){ return toStr(x); }).join(toStr(args[0]));
+    }
+    throw new Error('String.' + name + '() no soportado');
+  }
+
+  if(kind === 'Arrays'){
+    const arr = args[0];
+    switch(name){
+      case 'toString': return '[' + arr.map(function(x){ return toStr(x); }).join(', ') + ']';
+      case 'sort': {
+        const sorted = arr.slice().sort(function(x, y){
+          const a = x instanceof Num ? x.v : x, b = y instanceof Num ? y.v : y;
+          return a < b ? -1 : (a > b ? 1 : 0);
+        });
+        for(let i = 0; i < arr.length; i++) arr[i] = sorted[i];
+        return null;
+      }
+      case 'equals': {
+        const o = args[1];
+        if(arr.length !== o.length) return false;
+        for(let i = 0; i < arr.length; i++) if(!equalsVal(arr[i], o[i])) return false;
+        return true;
+      }
+      case 'copyOf': {
+        const len = toIntVal(args[1]);
+        const out = new Array(len).fill(null);
+        for(let i = 0; i < len && i < arr.length; i++) out[i] = arr[i];
+        return out;
+      }
+      case 'asList': return {__native:'ArrayList', items: arr.slice()};
+    }
+    throw new Error('Arrays.' + name + '() no soportado');
+  }
+
+  if(kind === 'ArrayList'){
+    const items = recv.items;
+    switch(name){
+      case 'add':
+        if(args.length === 2) items.splice(toIntVal(args[0]), 0, args[1]);
+        else items.push(args[0]);
+        return true;
+      case 'get': return items[toIntVal(args[0])];
+      case 'set': {
+        const i = toIntVal(args[0]);
+        const old = items[i];
+        items[i] = args[1];
+        return old;
+      }
+      case 'size': return I(items.length);
+      case 'isEmpty': return items.length === 0;
+      case 'remove': {
+        if(args[0] instanceof Num) return items.splice(toIntVal(args[0]), 1)[0];
+        const idx = items.findIndex(function(x){ return equalsVal(x, args[0]); });
+        if(idx >= 0){ items.splice(idx, 1); return true; }
+        return false;
+      }
+      case 'contains': return items.some(function(x){ return equalsVal(x, args[0]); });
+      case 'indexOf': return I(items.findIndex(function(x){ return equalsVal(x, args[0]); }));
+      case 'clear': items.length = 0; return null;
+      case 'toString': return toStr(recv);
+      case 'toArray': return items.slice();
+      case 'addAll': {
+        const other = args[0].items || args[0];
+        for(const x of other) items.push(x);
+        return true;
+      }
+    }
+    throw new Error('ArrayList.' + name + '() no soportado');
+  }
+
+  if(kind === 'HashMap'){
+    const map = recv.map;
+    switch(name){
+      case 'put': {
+        const old = map.get(toStr(args[0]));
+        map.set(toStr(args[0]), args[1]);
+        return old === undefined ? null : old;
+      }
+      case 'get': return map.has(toStr(args[0])) ? map.get(toStr(args[0])) : null;
+      case 'containsKey': return map.has(toStr(args[0]));
+      case 'size': return I(map.size);
+      case 'isEmpty': return map.size === 0;
+      case 'remove': {
+        const old = map.get(toStr(args[0]));
+        map.delete(toStr(args[0]));
+        return old === undefined ? null : old;
+      }
+      case 'clear': map.clear(); return null;
+      case 'keySet': return {__native:'HashSet', set: new Set(map.keys())};
+      case 'values': return {__native:'ArrayList', items: Array.from(map.values())};
+      case 'toString': return toStr(recv);
+    }
+    throw new Error('HashMap.' + name + '() no soportado');
+  }
+
+  if(kind === 'HashSet'){
+    const set = recv.set;
+    switch(name){
+      case 'add': set.add(toStr(args[0])); return true;
+      case 'contains': return set.has(toStr(args[0]));
+      case 'remove': set.delete(toStr(args[0])); return null;
+      case 'size': return I(set.size);
+      case 'isEmpty': return set.size === 0;
+      case 'clear': set.clear(); return null;
+      case 'toArray': return Array.from(set);
+      case 'toString': return toStr(recv);
+    }
+    throw new Error('HashSet.' + name + '() no soportado');
+  }
+
+  if(kind === 'StringBuilder'){
+    switch(name){
+      case 'append': recv.buf += toStr(args[0]); return recv;
+      case 'toString': return recv.buf;
+      case 'length': return I(recv.buf.length);
+      case 'reverse': {
+        recv.buf = recv.buf.split('').reverse().join('');
+        return recv;
+      }
+      case 'insert': {
+        const i = toIntVal(args[0]);
+        recv.buf = recv.buf.slice(0, i) + toStr(args[1]) + recv.buf.slice(i);
+        return recv;
+      }
+      case 'delete': {
+        recv.buf = recv.buf.slice(0, toIntVal(args[0])) + recv.buf.slice(toIntVal(args[1]));
+        return recv;
+      }
+      case 'charAt': return C(recv.buf.charCodeAt(toIntVal(args[0])));
+    }
+    throw new Error('StringBuilder.' + name + '() no soportado');
+  }
+
+  if(kind === 'Objects'){
+    switch(name){
+      case 'equals': return equalsVal(args[0], args[1]);
+      case 'toString': return toStr(args[0]);
+      case 'isNull': return args[0] === null;
+      case 'nonNull': return args[0] !== null;
+    }
+    throw new Error('Objects.' + name + '() no soportado');
+  }
+
+  throw new Error('Método nativo no soportado: ' + kind + '.' + name + '()');
+}
+
+/* ---- evaluación de expresiones ---- */
+const NATIVES = {
+  'System': {__native:'System'},
+  'Math': {__native:'Math'},
+  'Integer': {__native:'Integer'},
+  'Double': {__native:'Double'},
+  'Character': {__native:'Character'},
+  'Boolean': {__native:'Boolean'},
+  'String': {__native:'String'},
+  'Arrays': {__native:'Arrays'},
+  'Objects': {__native:'Objects'},
+  'Long': {__native:'Integer'},
+  'Float': {__native:'Double'},
+  'Short': {__native:'Integer'},
+  'Byte': {__native:'Integer'}
+};
+
+function evaluate(node, scope){
+  tick();
+  switch(node.type){
+    case 'Num': return new Num(node.value, node.kind);
+    case 'Str': return node.value;
+    case 'Char': return new Num(node.value.charCodeAt(0) || 0, 'char');
+    case 'Bool': return node.value;
+    case 'Null': return null;
+    case 'This': return scope.getThis();
+    case 'Super': return scope.getThis();
+    case 'Id': {
+      if(scope.has(node.name)) return scope.get(node.name);
+      const cls = scope.getClass();
+      if(cls){
+        let c = cls;
+        while(c){
+          if(c.staticFields.has(node.name)) return c.staticFields.get(node.name);
+          if(c.name === node.name) return c;
+          c = c.superClass;
+        }
+        const tObj = scope.thisObj;
+        if(tObj && tObj.fields.has(node.name)) return tObj.fields.get(node.name);
+      }
+      if(NATIVES[node.name]) return NATIVES[node.name];
+      throw new Error("La variable '" + node.name + "' no existe");
+    }
+    case 'ArrayInit': return node.elems.map(function(e){ return evaluate(e, scope); });
+    case 'Comma': {
+      let v = null;
+      for(const e of node.list) v = evaluate(e, scope);
+      return v;
+    }
+    case 'Lambda': return new LambdaValue(node.params, node.body, node.exprBody, scope);
+    case 'Binary': {
+      const a = evaluate(node.left, scope);
+      if(node.op === '&&'){ if(!a) return false; return !!evaluate(node.right, scope); }
+      if(node.op === '||'){ if(a) return true; return !!evaluate(node.right, scope); }
+      const b = evaluate(node.right, scope);
+      return binaryOp(node.op, a, b);
+    }
+    case 'Unary': {
+      const v = evaluate(node.operand, scope);
+      switch(node.op){
+        case '!': return !v;
+        case '-': if(v instanceof Num) return new Num(-v.v, v.kind); throw new Error('Negación no válida');
+        case '+': return v;
+        case '~': return I(~toIntVal(v));
+      }
+      break;
+    }
+    case 'Update': {
+      const cur = evaluate(node.operand, scope);
+      if(!(cur instanceof Num)) throw new Error('++/-- requiere un valor numérico');
+      const nv = new Num(cur.v + (node.op === '++' ? 1 : -1), cur.kind);
+      assignTo(node.operand, nv, scope);
+      return node.prefix ? nv : cur;
+    }
+    case 'Assign': {
+      if(node.op === '='){
+        const v = evaluate(node.value, scope);
+        return assignTo(node.target, v, scope);
+      }
+      const cur = evaluate(node.target, scope);
+      const rhs = evaluate(node.value, scope);
+      const nv = binaryOp(node.op.slice(0, -1), cur, rhs);
+      return assignTo(node.target, nv, scope);
+    }
+    case 'Ternary': return evaluate(node.cond, scope) ? evaluate(node.then, scope) : evaluate(node.else, scope);
+    case 'Cast': {
+      const v = evaluate(node.operand, scope);
+      const tn = node.target.name;
+      if(tn === 'int' || tn === 'long' || tn === 'short' || tn === 'byte') return I(toIntVal(v));
+      if(tn === 'double' || tn === 'float') return D(toNumVal(v));
+      if(tn === 'char') return C(toIntVal(v));
+      if(tn === 'boolean') return !!v;
+      return v;
+    }
+    case 'Index': {
+      const obj = evaluate(node.object, scope);
+      const idx = toIntVal(evaluate(node.index, scope));
+      if(typeof obj === 'string') return C(obj.charCodeAt(idx));
+      if(!Array.isArray(obj)) throw new Error('El objeto no es indexable');
+      if(idx < 0 || idx >= obj.length) throw new Error('ArrayIndexOutOfBoundsException: índice ' + idx);
+      return obj[idx];
+    }
+    case 'Member': {
+      if(node.object.type === 'Super'){
+        const self = scope.getThis();
+        if(!self) throw new Error("'super' fuera de contexto");
+        if(!self.fields.has(node.name)) throw new Error("El campo '" + node.name + "' no existe");
+        return self.fields.get(node.name);
+      }
+      return getMember(evaluate(node.object, scope), node.name);
+    }
+    case 'Call': return evalCall(node, scope);
+    case 'NewObject': return evalNewObject(node, scope);
+    case 'NewArray': return evalNewArray(node, scope);
+    case 'InstanceOf': {
+      const v = evaluate(node.expr, scope);
+      const tn = node.target.name;
+      if(tn === 'String') return typeof v === 'string';
+      if(tn === 'Object') return v !== null;
+      if(v instanceof JObject){
+        let c = v.cls;
+        while(c){ if(c.name === tn) return true; c = c.superClass; }
+      }
+      if(v instanceof EnumValue) return v.enumName === tn;
+      return false;
+    }
+  }
+  throw new Error('Expresión no soportada: ' + node.type);
+}
+
+function assignTo(target, value, scope){
+  if(target.type === 'Id'){
+    if(scope.has(target.name)){ scope.set(target.name, value); return value; }
+    const cls = scope.getClass();
+    if(cls){
+      let c = cls;
+      while(c){
+        if(c.staticFields.has(target.name)){ c.staticFields.set(target.name, value); return value; }
+        c = c.superClass;
+      }
+    }
+    scope.declare(target.name, value);
+    return value;
+  }
+  if(target.type === 'Member'){
+    const obj = evaluate(target.object, scope);
+    if(obj instanceof JObject){ obj.fields.set(target.name, value); return value; }
+    if(obj instanceof EnumValue){ obj.fields.set(target.name, value); return value; }
+    throw new Error("No se puede asignar a '" + target.name + "'");
+  }
+  if(target.type === 'Index'){
+    const arr = evaluate(target.object, scope);
+    const idx = toIntVal(evaluate(target.index, scope));
+    if(!Array.isArray(arr)) throw new Error('El objeto no es un arreglo');
+    arr[idx] = value;
+    return value;
+  }
+  throw new Error('Destino de asignación no válido');
+}
+
+function evalCall(node, scope){
+  const callee = node.callee;
+  const argVals = node.args.map(function(a){ return evaluate(a, scope); });
+
+  if(callee.type === 'Member'){
+    if(callee.object.type === 'Super'){
+      const self = scope.getThis();
+      const sup = self.cls.superClass;
+      if(!sup) throw new Error('No hay superclase');
+      const found = sup.findMethod(callee.name, argVals.length);
+      if(!found) throw new Error('El método ' + callee.name + '() no existe en la superclase');
+      return invokeUserMethod(self, found.owner, found.decl, argVals);
+    }
+    const recv = evaluate(callee.object, scope);
+    return callMethod(recv, callee.name, argVals);
+  }
+
+  if(callee.type === 'Id'){
+    const name = callee.name;
+    const cls = scope.getClass();
+    if(cls){
+      const found = cls.findMethod(name, argVals.length);
+      if(found){
+        const isStatic = found.decl.mods && found.decl.mods.indexOf('static') >= 0;
+        const thisObj = isStatic ? null : scope.getThis();
+        return invokeUserMethod(thisObj, found.owner, found.decl, argVals);
+      }
+    }
+    throw new Error('No se encuentra el método ' + name + '()');
+  }
+
+  const recv = evaluate(callee, scope);
+  if(recv instanceof LambdaValue) return recv.invoke(argVals);
+  throw new Error('Llamada no válida');
+}
+
+function evalNewObject(node, scope){
+  const clsName = node.className;
+  const argVals = node.args.map(function(a){ return evaluate(a, scope); });
+
+  if(clsName === 'ArrayList' || clsName === 'LinkedList' || clsName === 'Vector'){
+    return {__native:'ArrayList', items: []};
+  }
+  if(clsName === 'HashMap' || clsName === 'TreeMap' || clsName === 'LinkedHashMap'){
+    return {__native:'HashMap', map: new Map()};
+  }
+  if(clsName === 'HashSet' || clsName === 'TreeSet' || clsName === 'LinkedHashSet'){
+    return {__native:'HashSet', set: new Set()};
+  }
+  if(clsName === 'StringBuilder' || clsName === 'StringBuffer'){
+    return {__native:'StringBuilder', buf: argVals.length ? toStr(argVals[0]) : ''};
+  }
+  if(clsName === 'String'){
+    return argVals.length ? toStr(argVals[0]) : '';
+  }
+
+  const cls = currentRT.classes.get(clsName);
+  if(!cls) throw new Error("No existe la clase '" + clsName + "'");
+
+  const obj = new JObject(cls);
+  const chain = [];
+  let c = cls;
+  while(c){ chain.unshift(c); c = c.superClass; }
+
+  for(const cc of chain){
+    for(const f of cc.instanceFields) obj.fields.set(f.name, defaultValue(f.type));
+  }
+  for(const cc of chain){
+    for(const f of cc.instanceFields){
+      if(f.init){
+        const sc = new Scope(currentRT.globalScope);
+        sc.thisObj = obj;
+        sc.cls = cc;
+        obj.fields.set(f.name, evaluate(f.init, sc));
+      }
+    }
+  }
+
+  let ctor = null, owner = cls;
+  let k = cls;
+  while(k && !ctor){
+    ctor = k.ctors.find(function(ct){ return ct.params.length === argVals.length; });
+    if(!ctor && k.ctors.length === 1) ctor = k.ctors[0];
+    if(ctor) owner = k;
+    k = k.superClass;
+  }
+  if(ctor && ctor.body){
+    const sc = new Scope(currentRT.globalScope);
+    sc.thisObj = obj;
+    sc.cls = owner;
+    ctor.params.forEach(function(p, i){
+      sc.declare(p.name, i < argVals.length ? argVals[i] : defaultValue(p.type));
+    });
+    try { execStmt(ctor.body, sc); }
+    catch(e){ if(!(e instanceof ReturnSignal)) throw e; }
+  } else if(argVals.length > 0 && !cls.isEnum){
+    throw new Error('La clase ' + clsName + ' no tiene constructor con ' + argVals.length + ' parámetro(s)');
+  }
+
+  return obj;
+}
+
+function evalNewArray(node, scope){
+  if(node.init && (node.dims.length === 0 || node.dims.every(function(d){ return d === null; }))){
+    return buildFromInit(node.init, scope);
+  }
+  const sizes = node.dims.map(function(d){ return d === null ? 0 : toIntVal(evaluate(d, scope)); });
+  return buildArray(sizes, 0, node.elemType);
+}
+
+function buildFromInit(init, scope){
+  return init.elems.map(function(e){
+    return e.type === 'ArrayInit' ? buildFromInit(e, scope) : evaluate(e, scope);
+  });
+}
+
+function buildArray(sizes, depth, elemType){
+  const n = sizes[depth];
+  const arr = new Array(n);
+  for(let i = 0; i < n; i++){
+    arr[i] = (depth === sizes.length - 1)
+      ? defaultValue({name: elemType, dims: 0})
+      : buildArray(sizes, depth + 1, elemType);
+  }
+  return arr;
+}
+
+function execStmt(node, scope){
+  tick();
+  if(!node) return;
+
+  switch(node.type){
+    case 'Block': {
+      const s = new Scope(scope);
+      for(const st of node.stmts) execStmt(st, s);
+      return;
+    }
+    case 'Empty': return;
+    case 'ExprStmt': evaluate(node.expr, scope); return;
+    case 'LocalDecl': {
+      for(const d of node.decls){
+        let v;
+        if(d.init){
+          v = d.init.type === 'ArrayInit' ? buildFromInit(d.init, scope) : evaluate(d.init, scope);
+        } else {
+          v = defaultValue({name: node.varType.name, dims: (node.varType.dims || 0) + (d.dims || 0)});
+        }
+        scope.declare(d.name, v);
+      }
+      return;
+    }
+    case 'If': {
+      if(evaluate(node.cond, scope)) execStmt(node.then, scope);
+      else if(node.els) execStmt(node.els, scope);
+      return;
+    }
+    case 'While': {
+      while(evaluate(node.cond, scope)){
+        try { execStmt(node.body, scope); }
+        catch(e){
+          if(e instanceof BreakSignal){ if(!e.label) break; throw e; }
+          if(e instanceof ContinueSignal){ if(!e.label) continue; throw e; }
+          throw e;
+        }
+      }
+      return;
+    }
+    case 'DoWhile': {
+      do {
+        try { execStmt(node.body, scope); }
+        catch(e){
+          if(e instanceof BreakSignal){ if(!e.label) break; throw e; }
+          if(e instanceof ContinueSignal){ if(!e.label) continue; throw e; }
+          throw e;
+        }
+      } while(evaluate(node.cond, scope));
+      return;
+    }
+    case 'For': {
+      const s = new Scope(scope);
+      if(node.init){
+        if(node.init.type === 'ExprStmt' || node.init.type === 'LocalDecl' || node.init.type === 'Comma'){
+          execStmt(node.init, s);
+        } else {
+          evaluate(node.init, s);
+        }
+      }
+      while(true){
+        if(node.cond && !evaluate(node.cond, s)) break;
+        try { execStmt(node.body, s); }
+        catch(e){
+          if(e instanceof BreakSignal){ if(!e.label) break; throw e; }
+          if(e instanceof ContinueSignal){ if(e.label) throw e; }
+          else throw e;
+        }
+        if(node.update) evaluate(node.update, s);
+      }
+      return;
+    }
+    case 'ForEach': {
+      const iter = evaluate(node.iter, scope);
+      let items;
+      if(Array.isArray(iter)) items = iter.slice();
+      else if(iter && iter.__native === 'ArrayList') items = iter.items.slice();
+      else if(iter && iter.__native === 'HashSet') items = Array.from(iter.set);
+      else if(typeof iter === 'string') items = Array.from(iter).map(function(ch){ return C(ch.charCodeAt(0)); });
+      else throw new Error('El objeto no es iterable');
+      for(const item of items){
+        const s = new Scope(scope);
+        s.declare(node.varName, item);
+        try { execStmt(node.body, s); }
+        catch(e){
+          if(e instanceof BreakSignal){ if(!e.label) break; throw e; }
+          if(e instanceof ContinueSignal){ if(!e.label) continue; throw e; }
+          throw e;
+        }
+      }
+      return;
+    }
+    case 'Switch': {
+      const d = evaluate(node.disc, scope);
+      let startIdx = -1, defaultIdx = -1;
+      for(let i = 0; i < node.cases.length; i++){
+        const c = node.cases[i];
+        if(c.test === null) defaultIdx = i;
+        else if(equalsVal(d, evaluate(c.test, scope))){ startIdx = i; break; }
+      }
+      if(startIdx === -1) startIdx = defaultIdx;
+      if(startIdx === -1) return;
+      const s = new Scope(scope);
+      try {
+        for(let i = startIdx; i < node.cases.length; i++){
+          for(const st of node.cases[i].stmts) execStmt(st, s);
+        }
+      } catch(e){
+        if(e instanceof BreakSignal) return;
+        throw e;
+      }
+      return;
+    }
+    case 'Return': throw new ReturnSignal(node.arg ? evaluate(node.arg, scope) : null);
+    case 'Break': throw new BreakSignal(node.label);
+    case 'Continue': throw new ContinueSignal(node.label);
+    case 'Throw': throw new JavaThrow(evaluate(node.arg, scope));
+    case 'Try': {
+      const s = new Scope(scope);
+      try {
+        execStmt(node.block, s);
+      } catch(e){
+        if(e instanceof ReturnSignal || e instanceof BreakSignal || e instanceof ContinueSignal) throw e;
+        if(node.catches.length === 0) throw e;
+        const c = node.catches[0];
+        const cs = new Scope(s);
+        cs.declare(c.name, e instanceof JavaThrow ? e.value : new Num(0, 'int'));
+        execStmt(c.body, cs);
+      } finally {
+        if(node.fin) execStmt(node.fin, s);
+      }
+      return;
+    }
+  }
+  throw new Error('Sentencia no soportada: ' + node.type);
+}
+
+/* ============================================================
+   10. RUNTIME
+   ============================================================ */
+class Runtime {
+  constructor(classDecls){
+    this.classes = new Map();
+    this.globalScope = new Scope(null);
+    for(const decl of classDecls){
+      if(this.classes.has(decl.name)) continue;
+      this.classes.set(decl.name, new JClass(decl));
+    }
+    for(const c of this.classes.values()){
+      if(c.superName && this.classes.has(c.superName)) c.superClass = this.classes.get(c.superName);
+    }
+  }
+
+  run(){
+    let entry = null;
+    for(const c of this.classes.values()){
+      const ms = c.methods.get('main');
+      if(ms && ms.length){ entry = {cls: c, decl: ms[0]}; break; }
+    }
+    if(!entry){
+      throw new Error('No se ha encontrado el método "public static void main(String[] args)"');
+    }
+
+    for(const c of this.classes.values()){
+      for(const si of c.staticInits){
+        const sc = new Scope(this.globalScope);
+        sc.cls = c;
+        c.staticFields.set(si.name, evaluate(si.init, sc));
+      }
+      if(c.isEnum){
+        for(const ec of c.enumConstants){
+          c.staticFields.set(ec.name, new EnumValue(c, ec.name, ec.args));
+        }
+      }
+    }
+
+    const scope = new Scope(this.globalScope);
+    scope.cls = entry.cls;
+    scope.thisObj = null;
+    if(entry.decl.params.length) scope.declare(entry.decl.params[0].name, []);
+
+    try { execStmt(entry.decl.body, scope); }
+    catch(e){ if(e instanceof ReturnSignal) return; throw e; }
+  }
+}
+
+/* ============================================================
+   11. EJECUCIÓN
+   ============================================================ */
+function executeProgram(source){
+  stepCount = 0;
+  const tokens = tokenize(source);
+  const parser = new Parser(tokens);
+  const classDecls = parser.parseProgram();
+  if(classDecls.length === 0) throw new Error('El programa no contiene ninguna clase.');
+  const rt = new Runtime(classDecls);
+  currentRT = rt;
+  rt.run();
+}
+
+/* ============================================================
+   12. RESALTADO DE SINTAXIS
+   ============================================================ */
+function escapeHtml(s){
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightCode(src){
+  const out = [];
+  let i = 0;
+  function push(cls, text){
+    if(cls) out.push('<span class="' + cls + '">' + escapeHtml(text) + '</span>');
+    else out.push(escapeHtml(text));
+  }
+  while(i < src.length){
+    const ch = src[i];
+    if(ch === '/' && src[i+1] === '/'){
+      let j = i;
+      while(j < src.length && src[j] !== '\n') j++;
+      push('cmt', src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if(ch === '/' && src[i+1] === '*'){
+      let j = i + 2;
+      while(j < src.length && !(src[j] === '*' && src[j+1] === '/')) j++;
+      j = Math.min(j + 2, src.length);
+      push('cmt', src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if(ch === '"'){
+      let j = i + 1;
+      while(j < src.length && src[j] !== '"'){
+        if(src[j] === '\\') j++;
+        j++;
+      }
+      j = Math.min(j + 1, src.length);
+      push('str', src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if(ch === "'"){
+      let j = i + 1;
+      while(j < src.length && src[j] !== "'"){
+        if(src[j] === '\\') j++;
+        j++;
+      }
+      j = Math.min(j + 1, src.length);
+      push('str', src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if(/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(src[i+1] || ''))){
+      let j = i;
+      while(j < src.length && /[0-9a-fA-FxXbBlLfFdDeE._+-]/.test(src[j])){
+        if((src[j] === '+' || src[j] === '-') && !/[eE]/.test(src[j-1])) break;
+        j++;
+      }
+      push('num', src.slice(i, j));
+      i = j;
+      continue;
+    }
+    if(/[A-Za-z_$]/.test(ch)){
+      let j = i;
+      while(j < src.length && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const word = src.slice(i, j);
+      if(word === 'true' || word === 'false' || word === 'null') push('lit', word);
+      else if(KEYWORDS.has(word)) push('kw', word);
+      else if(/^[A-Z]/.test(word)) push('cls', word);
+      i = j;
+      continue;
+    }
+    out.push(escapeHtml(ch));
+    i++;
+  }
+  return out.join('');
+}
+
+/* ============================================================
+   13. UI
+   ============================================================ */
+const $ = function(id){ return document.getElementById(id); };
+const codeEl = $('code');
+const hlCode = $('hlCode');
+const highlightEl = $('highlight');
+const gutterEl = $('gutter');
+const consoleEl = $('console');
+const langSel = $('langSel');
+const exSel = $('exSel');
+const runBtn = $('runBtn');
+const clearBtn = $('clearBtn');
+const statusText = $('statusText');
+const dot = $('dot');
+const posBadge = $('posBadge');
+const locInfo = $('locInfo');
+const tabbar = $('tabbar');
+
+let fontSize = 13;
+
+/* ---- tabs ---- */
+const tabs = [{ id: 1, name: 'Hola.java', code: EXAMPLES[0].code, dirty: false }];
+let activeTabId = 1;
+let tabSeq = 2;
+
+function saveActiveCode(){
+  const tab = tabs.find(function(t){ return t.id === activeTabId; });
+  if(tab) tab.code = codeEl.value;
+}
+
+function renderTabs(){
+  tabbar.innerHTML = '';
+  tabs.forEach(function(tab){
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = tab.name + (tab.dirty ? ' ●' : '');
+    if(tab.dirty) nameSpan.classList.add('modified');
+    el.appendChild(nameSpan);
+    if(tabs.length > 1){
+      const close = document.createElement('span');
+      close.className = 'close';
+      close.textContent = '×';
+      close.onclick = function(ev){
+        ev.stopPropagation();
+        tabs.splice(tabs.findIndex(function(tt){ return tt.id === tab.id; }), 1);
+        if(activeTabId === tab.id) activeTabId = tabs[0].id;
+        switchToTab(activeTabId);
+        renderTabs();
+      };
+      el.appendChild(close);
+    }
+    el.onclick = function(){ switchToTab(tab.id); };
+    tabbar.appendChild(el);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'tab-new';
+  addBtn.textContent = '+';
+  addBtn.title = t('newFile');
+  addBtn.onclick = newTab;
+  tabbar.appendChild(addBtn);
+}
+
+function switchToTab(id){
+  saveActiveCode();
+  activeTabId = id;
+  const tab = tabs.find(function(t){ return t.id === id; });
+  if(tab){
+    codeEl.value = tab.code;
+    updateView();
+  }
+  renderTabs();
+}
+
+function newTab(){
+  saveActiveCode();
+  const tab = {
+    id: tabSeq++,
+    name: 'Sin título ' + (tabSeq - 1) + '.java',
+    code: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("¡Hola, JavaHTML!");\n    }\n}',
+    dirty: false
+  };
+  tabs.push(tab);
+  activeTabId = tab.id;
+  codeEl.value = tab.code;
+  updateView();
+  renderTabs();
+}
+
+function setStatus(kind, text){
+  statusText.textContent = text;
+  dot.className = 'dot' + (kind === 'busy' ? ' busy' : (kind === 'bad' ? ' bad' : ''));
+}
+
+function applyLanguage(code){
+  LANG = code;
+  const dict = I18N[LANG] || I18N.es;
+  document.documentElement.lang = LANG;
+  const langInfo = LANGS.find(function(l){ return l.code === LANG; });
+  document.body.dir = (langInfo && langInfo.dir) ? langInfo.dir : 'ltr';
+
+  $('subtitle').textContent = dict.subtitle;
+  runBtn.textContent = dict.run;
+  clearBtn.textContent = dict.clear;
+  $('editorLabel').textContent = dict.editor;
+  $('consoleLabel').textContent = dict.console;
+  $('hint').textContent = dict.hint;
+  setStatus('ok', dict.ready);
+
+  exSel.innerHTML = '';
+  EXAMPLES.forEach(function(ex, i){
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = ex.name;
+    exSel.appendChild(o);
+  });
+  exSel.value = 0;
+  loadExample(0);
+  renderTabs();
+}
+
+function loadExample(i){
+  const ex = EXAMPLES[i];
+  const tab = tabs.find(function(t){ return t.id === activeTabId; });
+  if(tab){
+    tab.code = ex.code;
+    tab.name = ex.name + '.java';
+    tab.dirty = false;
+  }
+  codeEl.value = ex.code;
+  consoleEl.innerHTML = '';
+  updateView();
+  renderTabs();
+  setStatus('ok', t('ready'));
+}
+
+function updateView(){
+  updateGutter();
+  updateHighlight();
+  updateStats();
+  saveActiveCode();
+}
+
+function updateGutter(){
+  const lines = codeEl.value.split('\n').length;
+  let s = '';
+  for(let i = 1; i <= lines; i++) s += i + '\n';
+  gutterEl.textContent = s;
+  gutterEl.scrollTop = codeEl.scrollTop;
+}
+
+function updateHighlight(){
+  hlCode.innerHTML = highlightCode(codeEl.value) + '\n';
+  highlightEl.scrollTop = codeEl.scrollTop;
+  highlightEl.scrollLeft = codeEl.scrollLeft;
+}
+
+function updateStats(){
+  const lines = codeEl.value.split('\n').length;
+  locInfo.textContent = lines + ' ' + t('lines');
+}
+
+function updateCursor(){
+  const pos = codeEl.selectionStart;
+  const before = codeEl.value.substring(0, pos);
+  const lines = before.split('\n');
+  const ln = lines.length;
+  const col = lines[lines.length - 1].length + 1;
+  posBadge.textContent = 'Ln ' + ln + ', Col ' + col;
+}
+
+codeEl.addEventListener('input', function(){
+  updateView();
+  updateCursor();
+  const tab = tabs.find(function(t){ return t.id === activeTabId; });
+  if(tab){ tab.dirty = true; renderTabs(); }
+});
+codeEl.addEventListener('scroll', function(){
+  gutterEl.scrollTop = codeEl.scrollTop;
+  highlightEl.scrollTop = codeEl.scrollTop;
+  highlightEl.scrollLeft = codeEl.scrollLeft;
+});
+codeEl.addEventListener('click', updateCursor);
+codeEl.addEventListener('keyup', updateCursor);
+codeEl.addEventListener('keydown', function(e){
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const s = codeEl.selectionStart, en = codeEl.selectionEnd;
+    codeEl.value = codeEl.value.substring(0, s) + '    ' + codeEl.value.substring(en);
+    codeEl.selectionStart = codeEl.selectionEnd = s + 4;
+    updateView();
+  }
+});
+
+function runCode(){
+  saveActiveCode();
+  consoleEl.innerHTML = '';
+  outLen = 0;
+  OUT = consoleEl;
+  setStatus('busy', t('running'));
+  const t0 = performance.now();
+
+  setTimeout(function(){
+    try {
+      executeProgram(codeEl.value);
+      const ms = (performance.now() - t0).toFixed(1);
+      if(consoleEl.textContent.length === 0){
+        const d = document.createElement('span');
+        d.className = 'c-dim';
+        d.textContent = t('empty');
+        consoleEl.appendChild(d);
+      }
+      setStatus('ok', t('ok') + ' · ' + ms + ' ms');
+    } catch(err){
+      const p = document.createElement('span');
+      p.className = 'c-err';
+      let msg = err && err.message ? err.message : String(err);
+      if(err instanceof JavaThrow) msg = 'Excepción: ' + toStr(err.value);
+      p.textContent = '\n✖ ' + t('err') + ': ' + msg + '\n';
+      consoleEl.appendChild(p);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+      setStatus('bad', t('err'));
+    }
+  }, 10);
+}
+
+runBtn.onclick = runCode;
+clearBtn.onclick = function(){
+  consoleEl.innerHTML = '';
+  outLen = 0;
+  setStatus('ok', t('ready'));
+};
+langSel.onchange = function(){ applyLanguage(langSel.value); };
+exSel.onchange = function(){ loadExample(parseInt(exSel.value, 10)); };
+
+$('fontMinus').onclick = function(){
+  fontSize = Math.max(10, fontSize - 1);
+  applyFontSize();
+};
+$('fontPlus').onclick = function(){
+  fontSize = Math.min(22, fontSize + 1);
+  applyFontSize();
+};
+
+function applyFontSize(){
+  const s = fontSize + 'px';
+  codeEl.style.fontSize = s;
+  highlightEl.style.fontSize = s;
+  gutterEl.style.fontSize = s;
+}
+
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    runCode();
+  }
+});
+
+LANGS.forEach(function(l){
+  const o = document.createElement('option');
+  o.value = l.code;
+  o.textContent = l.label;
+  langSel.appendChild(o);
+});
+
+langSel.value = 'es';
+applyLanguage('es');
+renderTabs();
+updateView();
+updateCursor();
+setStatus('ok', t('ready'));
+
+const welcome = document.createElement('div');
+welcome.innerHTML = '<span class="c-hdr">JavaHTML IDE v2.1</span>\n<span class="c-dim">Editor Java en tu navegador · 10 idiomas · Ctrl+Enter para ejecutar</span>\n';
+consoleEl.appendChild(welcome);
+</script>
+</body>
+</html>
